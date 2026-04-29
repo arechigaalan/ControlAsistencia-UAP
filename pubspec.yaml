@@ -1,0 +1,47 @@
+name: asistencia_qr
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  mobile_scanner: ^7.2.0
+  audioplayers: ^6.0.0
+  vibration: ^3.1.3
+  csv: ^8.0.0
+  path_provider: ^2.1.3
+  share_plus: ^13.1.0
+  intl: ^0.20.2
+  cupertino_icons: ^1.0.8
+  sqflite: ^2.3.3+1
+  path: ^1.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.14.4
+  flutter_lints: ^6.0.0
+  flutter_native_splash: ^2.4.0
+
+flutter_native_splash:
+  color: "#01152E"
+  image: assets/icon/icon.png
+  android_12:
+    color: "#01152E"
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  remove_alpha_ios: true
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/sounds/success_beep.wav
+    - assets/sounds/error_beep.wav
