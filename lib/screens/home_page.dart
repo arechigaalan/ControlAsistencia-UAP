@@ -207,7 +207,7 @@ class _HomePageState extends State<HomePage> {
     final hayRegistros = totalRegistros > 0;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Control Asistencia'),
+        title: const Text('Control de asistencia'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),

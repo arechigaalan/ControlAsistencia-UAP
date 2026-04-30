@@ -8,8 +8,7 @@ class EstadisticasGruposPage extends StatefulWidget {
   const EstadisticasGruposPage({super.key});
 
   @override
-  State<EstadisticasGruposPage> createState() =>
-      _EstadisticasGruposPageState();
+  State<EstadisticasGruposPage> createState() => _EstadisticasGruposPageState();
 }
 
 class _EstadisticasGruposPageState extends State<EstadisticasGruposPage> {
@@ -49,23 +48,17 @@ class _EstadisticasGruposPageState extends State<EstadisticasGruposPage> {
   @override
   Widget build(BuildContext context) {
     if (cargando) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (grupos.isEmpty) {
       return const Scaffold(
-        body: Center(
-          child: Text('No hay grupos detectados'),
-        ),
+        body: Center(child: Text('No hay grupos detectados')),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Estadísticas por grupo'),
-      ),
+      appBar: AppBar(title: const Text('Estadísticas por grupo')),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: grupos.length,
@@ -101,10 +94,7 @@ class _EstadisticasGruposPageState extends State<EstadisticasGruposPage> {
                         color: const Color(0xFFFFF8E8),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Icon(
-                        Icons.groups,
-                        color: Color(0xFF01152E),
-                      ),
+                      child: const Icon(Icons.groups, color: Color(0xFF01152E)),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -131,7 +121,7 @@ class _EstadisticasGruposPageState extends State<EstadisticasGruposPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Alumnos detectados: ${g.totalAlumnos}',
+                            'Alumnos registrados: ${g.totalAlumnos}',
                             style: const TextStyle(
                               color: Color(0xFF5B6573),
                               fontSize: 12,
@@ -140,10 +130,7 @@ class _EstadisticasGruposPageState extends State<EstadisticasGruposPage> {
                         ],
                       ),
                     ),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: Color(0xFF01152E),
-                    ),
+                    const Icon(Icons.chevron_right, color: Color(0xFF01152E)),
                   ],
                 ),
               ),

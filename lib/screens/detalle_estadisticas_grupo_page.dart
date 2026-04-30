@@ -232,7 +232,7 @@ class _DetalleEstadisticasGrupoPageState
                       runSpacing: 8,
                       children: [
                         _resumenChip('Ses', '$totalSesiones'),
-                        _resumenChip('Alumn', '$totalAlumnos'),
+                        _resumenChip('Alumnos', '$totalAlumnos'),
                         _resumenChip(
                           'Prom',
                           '${promedioAsistencia.toStringAsFixed(0)}%',
