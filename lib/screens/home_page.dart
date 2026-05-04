@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/exportador_csv.dart';
 import '../services/local_storage.dart';
+import 'configurar_materias_page.dart';
 import 'configurar_parciales_page.dart';
 import 'estadisticas_grupos_page.dart';
 import 'scanner_page.dart';
@@ -28,8 +29,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> verificarConfiguracion() async {
-    final configurado = await LocalStorage.parcialesConfigurados();
-    if (!configurado && mounted) {
+    final parcialesConfigurados = await LocalStorage.parcialesConfigurados();
+    if (!parcialesConfigurados && mounted) {
       await Navigator.push(
         context,
         MaterialPageRoute(
@@ -37,6 +38,17 @@ class _HomePageState extends State<HomePage> {
         ),
       );
     }
+
+    final materiasConfiguradas = await LocalStorage.materiasDocenteConfiguradas();
+    if (!materiasConfiguradas && mounted) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const ConfigurarMateriasPage(obligatorio: true),
+        ),
+      );
+    }
+
     revisadoConfig = true;
   }
 
@@ -93,10 +105,65 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> abrirConfiguracion() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ConfigurarParcialesPage()),
+    final opcion = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE5E7EB),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Configuración',
+                style: TextStyle(
+                  color: Color(0xFF01152E),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const Icon(Icons.date_range, color: Color(0xFF01152E)),
+                title: const Text('Configurar parciales'),
+                onTap: () => Navigator.of(sheetContext).pop('parciales'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.menu_book, color: Color(0xFF01152E)),
+                title: const Text('Configurar materias'),
+                onTap: () => Navigator.of(sheetContext).pop('materias'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
+
+    if (!mounted || opcion == null) return;
+
+    if (opcion == 'parciales') {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ConfigurarParcialesPage()),
+      );
+    } else if (opcion == 'materias') {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ConfigurarMateriasPage()),
+      );
+    }
+
     await cargarResumen();
   }
 

@@ -9,6 +9,8 @@ class RegistroAsistencia {
   final String turno;
   final String modalidad;
   final String curp;
+  final String materiaClave;
+  final String materiaNombre;
   final String tipoRegistro;
   final String fechaClase;
   final String fechaHoraEscaneo;
@@ -26,6 +28,8 @@ class RegistroAsistencia {
     required this.turno,
     required this.modalidad,
     required this.curp,
+    required this.materiaClave,
+    required this.materiaNombre,
     required this.tipoRegistro,
     required this.fechaClase,
     required this.fechaHoraEscaneo,
@@ -44,6 +48,8 @@ class RegistroAsistencia {
         'turno': turno,
         'modalidad': modalidad,
         'curp': curp,
+        'materia_clave': materiaClave,
+        'materia_nombre': materiaNombre,
         'tipo_registro': tipoRegistro,
         'fecha_clase': fechaClase,
         'fecha_hora_escaneo': fechaHoraEscaneo,
@@ -63,6 +69,8 @@ class RegistroAsistencia {
       turno: (map['turno'] ?? '').toString(),
       modalidad: (map['modalidad'] ?? '').toString(),
       curp: (map['curp'] ?? '').toString(),
+      materiaClave: (map['materia_clave'] ?? '').toString(),
+      materiaNombre: (map['materia_nombre'] ?? '').toString(),
       tipoRegistro: (map['tipo_registro'] ?? '').toString(),
       fechaClase: (map['fecha_clase'] ?? '').toString(),
       fechaHoraEscaneo: (map['fecha_hora_escaneo'] ?? '').toString(),

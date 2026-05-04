@@ -11,6 +11,8 @@ class DetalleAlumnoEstadisticaPage extends StatefulWidget {
   final String grupo;
   final String turno;
   final String modalidad;
+  final String materiaClave;
+  final String materiaNombre;
   final int parcial;
   const DetalleAlumnoEstadisticaPage({
     super.key,
@@ -22,6 +24,8 @@ class DetalleAlumnoEstadisticaPage extends StatefulWidget {
     required this.grupo,
     required this.turno,
     required this.modalidad,
+    required this.materiaClave,
+    required this.materiaNombre,
     required this.parcial,
   });
   @override
@@ -48,6 +52,7 @@ class _DetalleAlumnoEstadisticaPageState
         r.grupo == widget.grupo &&
         r.turno == widget.turno &&
         r.modalidad == widget.modalidad &&
+        r.materiaClave == widget.materiaClave &&
         r.parcial == widget.parcial;
   }
   Future<void> cargar() async {
@@ -206,7 +211,7 @@ class _DetalleAlumnoEstadisticaPageState
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${widget.semestre}° ${widget.grupo} | Parcial ${widget.parcial}',
+                    '${widget.semestre}° ${widget.grupo} | ${widget.materiaNombre} | Parcial ${widget.parcial}',
                     style: const TextStyle(color: Colors.white),
                   ),
                   const SizedBox(height: 12),

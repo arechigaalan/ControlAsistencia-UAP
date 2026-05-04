@@ -10,6 +10,8 @@ class DetalleEstadisticasGrupoPage extends StatefulWidget {
   final String grupo;
   final String turno;
   final String modalidad;
+  final String materiaClave;
+  final String materiaNombre;
 
   const DetalleEstadisticasGrupoPage({
     super.key,
@@ -18,6 +20,8 @@ class DetalleEstadisticasGrupoPage extends StatefulWidget {
     required this.grupo,
     required this.turno,
     required this.modalidad,
+    required this.materiaClave,
+    required this.materiaNombre,
   });
 
   @override
@@ -71,6 +75,7 @@ class _DetalleEstadisticasGrupoPageState
       grupo: widget.grupo,
       turno: widget.turno,
       modalidad: widget.modalidad,
+      materiaClave: widget.materiaClave,
     );
 
     final sesiones = await LocalStorage.contarSesionesPorGrupoYParcial(
@@ -79,6 +84,7 @@ class _DetalleEstadisticasGrupoPageState
       grupo: widget.grupo,
       turno: widget.turno,
       modalidad: widget.modalidad,
+      materiaClave: widget.materiaClave,
       parcial: parcialSeleccionado,
     );
 
@@ -88,6 +94,7 @@ class _DetalleEstadisticasGrupoPageState
       grupo: widget.grupo,
       turno: widget.turno,
       modalidad: widget.modalidad,
+      materiaClave: widget.materiaClave,
       parcial: parcialSeleccionado,
     );
 
@@ -157,7 +164,7 @@ class _DetalleEstadisticasGrupoPageState
     final tituloGrupo =
         '${widget.plantel} | ${widget.semestre}° ${widget.grupo} | '
         '${TurnoHelper.nombreTurno(widget.turno)} | '
-        '${TurnoHelper.nombreModalidad(widget.modalidad)}';
+        '${TurnoHelper.nombreModalidad(widget.modalidad)} | ${widget.materiaNombre}';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Estadísticas')),
@@ -284,6 +291,8 @@ class _DetalleEstadisticasGrupoPageState
                                   grupo: widget.grupo,
                                   turno: widget.turno,
                                   modalidad: widget.modalidad,
+                                  materiaClave: widget.materiaClave,
+                                  materiaNombre: widget.materiaNombre,
                                   parcial: parcialSeleccionado,
                                 ),
                               ),

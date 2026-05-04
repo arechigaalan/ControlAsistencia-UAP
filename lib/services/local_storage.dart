@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 
+import '../models/materia.dart';
 import '../models/parcial_config.dart';
 import '../models/registro_asistencia.dart';
 import '../models/session_data.dart';
@@ -45,6 +48,63 @@ class LocalStorage {
 
     if (rows.isEmpty) return null;
 
+    return SessionData.fromMap(rows.first);
+  }
+
+
+  static Future<void> guardarMateriasDocente(List<Materia> materias) async {
+    final db = await DatabaseService.database;
+
+    final value = json.encode(materias.map((m) => m.toMap()).toList());
+
+    await db.insert('app_state', {
+      'key': 'materias_docente',
+      'value': value,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  static Future<List<Materia>> obtenerMateriasDocente() async {
+    final db = await DatabaseService.database;
+
+    final rows = await db.query(
+      'app_state',
+      where: 'key = ?',
+      whereArgs: ['materias_docente'],
+      limit: 1,
+    );
+
+    if (rows.isEmpty) return [];
+
+    final value = (rows.first['value'] ?? '').toString();
+    if (value.isEmpty) return [];
+
+    try {
+      final data = json.decode(value) as List<dynamic>;
+      return data
+          .map((item) => Materia.fromMap(Map<String, dynamic>.from(item as Map)))
+          .where((m) => m.clave.isNotEmpty && m.nombre.isNotEmpty)
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<bool> materiasDocenteConfiguradas() async {
+    final materias = await obtenerMateriasDocente();
+    return materias.isNotEmpty;
+  }
+
+  static Future<SessionData?> obtenerSesionPorId(String sessionId) async {
+    final db = await DatabaseService.database;
+
+    final rows = await db.query(
+      'sesiones',
+      where: 'session_id = ?',
+      whereArgs: [sessionId],
+      limit: 1,
+    );
+
+    if (rows.isEmpty) return null;
     return SessionData.fromMap(rows.first);
   }
 
@@ -222,10 +282,12 @@ class LocalStorage {
         grupo,
         turno,
         modalidad,
+        materia_clave,
+        materia_nombre,
         COUNT(DISTINCT curp) AS total_alumnos
-      FROM alumnos
-      GROUP BY plantel, semestre, grupo, turno, modalidad
-      ORDER BY plantel ASC, semestre ASC, grupo ASC, turno ASC, modalidad ASC
+      FROM registros
+      GROUP BY plantel, semestre, grupo, turno, modalidad, materia_clave, materia_nombre
+      ORDER BY plantel ASC, semestre ASC, grupo ASC, turno ASC, modalidad ASC, materia_nombre ASC
     ''');
   }
 
@@ -235,15 +297,31 @@ class LocalStorage {
     required String grupo,
     required String turno,
     required String modalidad,
+    required String materiaClave,
   }) async {
     final db = await DatabaseService.database;
 
-    return db.query(
-      'alumnos',
-      where:
-          'plantel = ? AND semestre = ? AND grupo = ? AND turno = ? AND modalidad = ?',
-      whereArgs: [plantel, semestre, grupo, turno, modalidad],
-      orderBy: 'nombre ASC',
+    return db.rawQuery(
+      '''
+      SELECT DISTINCT
+        curp,
+        nombre,
+        matricula,
+        plantel,
+        semestre,
+        grupo,
+        turno,
+        modalidad
+      FROM registros
+      WHERE plantel = ?
+        AND semestre = ?
+        AND grupo = ?
+        AND turno = ?
+        AND modalidad = ?
+        AND materia_clave = ?
+      ORDER BY nombre ASC
+      ''',
+      [plantel, semestre, grupo, turno, modalidad, materiaClave],
     );
   }
 
@@ -253,6 +331,7 @@ class LocalStorage {
     required String grupo,
     required String turno,
     required String modalidad,
+    required String materiaClave,
     required int parcial,
   }) async {
     final db = await DatabaseService.database;
@@ -266,9 +345,10 @@ class LocalStorage {
         AND grupo = ?
         AND turno = ?
         AND modalidad = ?
+        AND materia_clave = ?
         AND parcial = ?
       ''',
-      [plantel, semestre, grupo, turno, modalidad, parcial],
+      [plantel, semestre, grupo, turno, modalidad, materiaClave, parcial],
     );
 
     return (result.first['total'] as int?) ?? 0;
@@ -280,6 +360,7 @@ class LocalStorage {
     required String grupo,
     required String turno,
     required String modalidad,
+    required String materiaClave,
     required int parcial,
   }) async {
     final db = await DatabaseService.database;
@@ -297,10 +378,11 @@ class LocalStorage {
         AND grupo = ?
         AND turno = ?
         AND modalidad = ?
+        AND materia_clave = ?
         AND parcial = ?
       GROUP BY curp
       ''',
-      [plantel, semestre, grupo, turno, modalidad, parcial],
+      [plantel, semestre, grupo, turno, modalidad, materiaClave, parcial],
     );
 
     final Map<String, Map<String, dynamic>> resultado = {};

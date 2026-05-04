@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseService {
   static Database? _database;
   static const _dbName = 'asistencia_qr.db';
-  static const _dbVersion = 4;
+  static const _dbVersion = 5;
 
   static Future<Database> get database async {
     if (_database != null) return _database!;
@@ -32,7 +32,9 @@ class DatabaseService {
         activa INTEGER NOT NULL,
         tipo_registro TEXT NOT NULL,
         fecha_clase TEXT NOT NULL,
-        parcial INTEGER NOT NULL
+        parcial INTEGER NOT NULL,
+        materia_clave TEXT NOT NULL,
+        materia_nombre TEXT NOT NULL
       )
     ''');
 
@@ -48,6 +50,8 @@ class DatabaseService {
         turno TEXT NOT NULL,
         modalidad TEXT NOT NULL,
         curp TEXT NOT NULL,
+        materia_clave TEXT NOT NULL,
+        materia_nombre TEXT NOT NULL,
         tipo_registro TEXT NOT NULL,
         fecha_clase TEXT NOT NULL,
         fecha_hora_escaneo TEXT NOT NULL,
@@ -96,6 +100,9 @@ class DatabaseService {
     );
     await db.execute(
       'CREATE INDEX idx_registros_parcial ON registros(parcial)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_registros_materia ON registros(materia_clave)',
     );
     await db.execute(
       'CREATE INDEX idx_alumnos_grupo ON alumnos(plantel, semestre, grupo, turno, modalidad)',
@@ -155,6 +162,24 @@ class DatabaseService {
 
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_alumnos_grupo ON alumnos(plantel, semestre, grupo, turno, modalidad)',
+      );
+    }
+
+    if (oldVersion < 5) {
+      await db.execute(
+        "ALTER TABLE sesiones ADD COLUMN materia_clave TEXT NOT NULL DEFAULT ''",
+      );
+      await db.execute(
+        "ALTER TABLE sesiones ADD COLUMN materia_nombre TEXT NOT NULL DEFAULT ''",
+      );
+      await db.execute(
+        "ALTER TABLE registros ADD COLUMN materia_clave TEXT NOT NULL DEFAULT ''",
+      );
+      await db.execute(
+        "ALTER TABLE registros ADD COLUMN materia_nombre TEXT NOT NULL DEFAULT ''",
+      );
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_registros_materia ON registros(materia_clave)',
       );
     }
   }

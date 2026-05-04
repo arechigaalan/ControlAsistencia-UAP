@@ -70,6 +70,7 @@ class _VerAsistenciasPageState extends State<VerAsistenciasPage> {
           ),
           turno: TurnoHelper.nombreTurno(primero.turno),
           modalidad: TurnoHelper.nombreModalidad(primero.modalidad),
+          materiaNombre: primero.materiaNombre,
           fechaClase: primero.fechaClase,
           fechaClave: fechaTexto,
           fechaVisible: fechaVisible,
@@ -194,7 +195,7 @@ class _VerAsistenciasPageState extends State<VerAsistenciasPage> {
                                 return TarjetaSesion(
                                   titulo: s.plantel,
                                   subtitulo:
-                                      '${s.grupo} | ${s.turno} | ${s.modalidad}',
+                                      '${s.grupo} | ${s.turno} | ${s.modalidad} | ${s.materiaNombre}',
                                   fecha: s.fechaVisible,
                                   hora: s.hora,
                                   cantidad: s.cantidad,
@@ -207,7 +208,7 @@ class _VerAsistenciasPageState extends State<VerAsistenciasPage> {
                                           fechaClase: s.fechaClase,
                                           parcial: s.parcial,
                                           tituloSesion:
-                                              '${s.plantel} | ${s.grupo} | ${s.turno} | ${s.modalidad} | Parcial ${s.parcial} | ${s.fechaVisible}',
+                                              '${s.plantel} | ${s.grupo} | ${s.turno} | ${s.modalidad} | ${s.materiaNombre} | Parcial ${s.parcial} | ${s.fechaVisible}',
                                         ),
                                       ),
                                     );
@@ -238,6 +239,7 @@ class _SesionResumen {
   final String grupo;
   final String turno;
   final String modalidad;
+  final String materiaNombre;
   final String fechaClase;
   final String fechaClave;
   final String fechaVisible;
@@ -252,6 +254,7 @@ class _SesionResumen {
     required this.grupo,
     required this.turno,
     required this.modalidad,
+    required this.materiaNombre,
     required this.fechaClase,
     required this.fechaClave,
     required this.fechaVisible,

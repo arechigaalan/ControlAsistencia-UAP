@@ -5,6 +5,8 @@ class SessionData {
   final String tipoRegistro;
   final String fechaClase;
   final int parcial;
+  final String materiaClave;
+  final String materiaNombre;
 
   SessionData({
     required this.sessionId,
@@ -13,6 +15,8 @@ class SessionData {
     required this.tipoRegistro,
     required this.fechaClase,
     required this.parcial,
+    required this.materiaClave,
+    required this.materiaNombre,
   });
 
   Map<String, dynamic> toMap() => {
@@ -22,6 +26,8 @@ class SessionData {
         'tipo_registro': tipoRegistro,
         'fecha_clase': fechaClase,
         'parcial': parcial,
+        'materia_clave': materiaClave,
+        'materia_nombre': materiaNombre,
       };
 
   factory SessionData.fromMap(Map<String, dynamic> map) {
@@ -34,6 +40,8 @@ class SessionData {
       parcial: map['parcial'] is int
           ? map['parcial']
           : int.tryParse((map['parcial'] ?? '1').toString()) ?? 1,
+      materiaClave: (map['materia_clave'] ?? '').toString(),
+      materiaNombre: (map['materia_nombre'] ?? '').toString(),
     );
   }
 }

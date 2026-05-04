@@ -13,12 +13,16 @@ class JustificarPage extends StatefulWidget {
   final String sessionId;
   final String fechaClase;
   final int parcial;
+  final String materiaClave;
+  final String materiaNombre;
 
   const JustificarPage({
     super.key,
     required this.sessionId,
     required this.fechaClase,
     required this.parcial,
+    required this.materiaClave,
+    required this.materiaNombre,
   });
 
   @override
@@ -198,6 +202,8 @@ class _JustificarPageState extends State<JustificarPage> {
       turno: turno,
       modalidad: modalidad,
       curp: curp,
+      materiaClave: widget.materiaClave,
+      materiaNombre: widget.materiaNombre,
       tipoRegistro: 'justificada',
       fechaClase: widget.fechaClase,
       fechaHoraEscaneo: UtilsFechas.fechaHora(ahora),
@@ -255,7 +261,7 @@ class _JustificarPageState extends State<JustificarPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Se agregará como justificación en el Parcial ${widget.parcial}.',
+                    'Se agregará como justificación en ${widget.materiaNombre}, Parcial ${widget.parcial}. ',
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 13,

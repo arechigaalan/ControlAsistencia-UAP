@@ -31,6 +31,8 @@ class _EstadisticasGruposPageState extends State<EstadisticasGruposPage> {
         grupo: (row['grupo'] ?? '').toString(),
         turno: (row['turno'] ?? '').toString(),
         modalidad: (row['modalidad'] ?? '').toString(),
+        materiaClave: (row['materia_clave'] ?? '').toString(),
+        materiaNombre: (row['materia_nombre'] ?? '').toString(),
         totalAlumnos: row['total_alumnos'] is int
             ? row['total_alumnos'] as int
             : int.tryParse((row['total_alumnos'] ?? '0').toString()) ?? 0,
@@ -79,6 +81,8 @@ class _EstadisticasGruposPageState extends State<EstadisticasGruposPage> {
                       grupo: g.grupo,
                       turno: g.turno,
                       modalidad: g.modalidad,
+                      materiaClave: g.materiaClave,
+                      materiaNombre: g.materiaNombre,
                     ),
                   ),
                 );
@@ -121,6 +125,15 @@ class _EstadisticasGruposPageState extends State<EstadisticasGruposPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
+                            'Materia: ${g.materiaNombre}',
+                            style: const TextStyle(
+                              color: Color(0xFF01152E),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
                             'Alumnos registrados: ${g.totalAlumnos}',
                             style: const TextStyle(
                               color: Color(0xFF5B6573),
@@ -148,6 +161,8 @@ class _GrupoResumen {
   final String grupo;
   final String turno;
   final String modalidad;
+  final String materiaClave;
+  final String materiaNombre;
   final int totalAlumnos;
 
   _GrupoResumen({
@@ -156,6 +171,8 @@ class _GrupoResumen {
     required this.grupo,
     required this.turno,
     required this.modalidad,
+    required this.materiaClave,
+    required this.materiaNombre,
     required this.totalAlumnos,
   });
 }

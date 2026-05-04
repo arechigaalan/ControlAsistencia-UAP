@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../models/materia.dart';
 import '../models/registro_asistencia.dart';
 import '../models/session_data.dart';
 import '../services/local_storage.dart';
@@ -34,6 +35,7 @@ class _ScannerPageState extends State<ScannerPage> {
   bool mostrandoGuardado = false;
 
   int? parcial;
+  Materia? materiaSeleccionada;
 
   int capturados = 0;
   String ultimoCodigo = '';
@@ -44,6 +46,7 @@ class _ScannerPageState extends State<ScannerPage> {
   String modalidadSesion = '';
   String plantelSesion = '';
   String horaSesion = '';
+  String materiaSesion = '';
 
   EstadoEscaneo estado = EstadoEscaneo.ninguno;
   String mensaje = '';
@@ -108,6 +111,99 @@ class _ScannerPageState extends State<ScannerPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       minimumSize: const Size(110, 48),
       textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+    );
+  }
+
+
+  Future<Materia?> seleccionarMateriaSesion() async {
+    final materias = await LocalStorage.obtenerMateriasDocente();
+
+    if (!mounted) return null;
+
+    if (materias.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Primero configura las materias que impartes'),
+        ),
+      );
+      Navigator.of(context).pop();
+      return null;
+    }
+
+    return showModalBottomSheet<Materia>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE5E7EB),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '¿A qué materia pertenece esta sesión?',
+                  style: TextStyle(
+                    color: Color(0xFF01152E),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Selecciona una de tus materias configuradas.',
+                  style: TextStyle(color: Color(0xFF5B6573), fontSize: 14),
+                ),
+                const SizedBox(height: 14),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: materias.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (_, index) {
+                      final materia = materias[index];
+                      return Card(
+                        child: ListTile(
+                          leading: const CircleAvatar(
+                            backgroundColor: Color(0xFFFFF8E8),
+                            child: Icon(Icons.menu_book, color: Color(0xFF01152E)),
+                          ),
+                          title: Text(
+                            materia.nombre,
+                            style: const TextStyle(
+                              color: Color(0xFF01152E),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Clave: ${materia.clave} · Semestre: ${materia.semestre}',
+                            style: const TextStyle(color: Color(0xFF5B6573)),
+                          ),
+                          onTap: () => Navigator.of(sheetContext).pop(materia),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -206,6 +302,15 @@ class _ScannerPageState extends State<ScannerPage> {
         parcial = parcialCalculado;
       }
 
+      final materia = await seleccionarMateriaSesion();
+      if (materia == null) {
+        if (!mounted) return;
+        Navigator.of(context).pop();
+        return;
+      }
+      materiaSeleccionada = materia;
+      materiaSesion = materia.nombre;
+
       final sesionGuardada = await LocalStorage.obtenerSesion();
 
       if (sesionGuardada == null) {
@@ -216,7 +321,8 @@ class _ScannerPageState extends State<ScannerPage> {
       final mismaSesion =
           sesionGuardada.tipoRegistro == widget.tipoRegistro &&
           sesionGuardada.fechaClase == fechaActual &&
-          sesionGuardada.parcial == parcial;
+          sesionGuardada.parcial == parcial &&
+          sesionGuardada.materiaClave == materiaSeleccionada!.clave;
 
       if (!mismaSesion) {
         await _crearNuevaSesion();
@@ -242,7 +348,10 @@ class _ScannerPageState extends State<ScannerPage> {
 
       if (!mounted) return;
 
-      final decision = await dialogoSesion(lista.length);
+      final decision = await dialogoSesion(
+        lista.length,
+        sesionGuardada.materiaNombre,
+      );
 
       if (!mounted) return;
 
@@ -273,12 +382,22 @@ class _ScannerPageState extends State<ScannerPage> {
 
           plantelSesion = primero == null ? '' : primero.plantel;
           horaSesion = _obtenerHoraSesion(sesionGuardada.fechaCreacion);
+          materiaSesion = sesionGuardada.materiaNombre;
           cargando = false;
         });
       } else {
         await _crearNuevaSesion();
       }
     } catch (_) {
+      if (materiaSeleccionada == null) {
+        final materia = await seleccionarMateriaSesion();
+        if (materia == null) {
+          if (mounted) Navigator.of(context).pop();
+          return;
+        }
+        materiaSeleccionada = materia;
+        materiaSesion = materia.nombre;
+      }
       await _crearNuevaSesion();
     }
   }
@@ -288,6 +407,7 @@ class _ScannerPageState extends State<ScannerPage> {
       tipoRegistro: widget.tipoRegistro,
       fechaClase: widget.fechaClase,
       parcial: parcial ?? 1,
+      materia: materiaSeleccionada!,
     );
 
     await LocalStorage.guardarSesion(nueva);
@@ -305,11 +425,12 @@ class _ScannerPageState extends State<ScannerPage> {
       modalidadSesion = '';
       plantelSesion = '';
       horaSesion = _obtenerHoraSesion(nueva.fechaCreacion);
+      materiaSesion = nueva.materiaNombre;
       cargando = false;
     });
   }
 
-  Future<String?> dialogoSesion(int count) {
+  Future<String?> dialogoSesion(int count, String materiaNombre) {
     return showDialog<String>(
       context: context,
       barrierDismissible: false,
@@ -325,7 +446,8 @@ class _ScannerPageState extends State<ScannerPage> {
         content: Text(
           grupoSesion.isNotEmpty
               ? 'Existe una sesión activa de:\n'
-                    '$grupoSesion | $turnoSesion\n\n'
+                    '$grupoSesion | $turnoSesion\n'
+                    'Materia: $materiaNombre\n\n'
                     'Alumnos registrados: $count\n\n'
                     '¿Deseas continuar o crear una nueva?'
               : 'Existe una sesión activa.\n'
@@ -405,17 +527,20 @@ class _ScannerPageState extends State<ScannerPage> {
     required String tipoRegistro,
     required DateTime fechaClase,
     required int parcial,
+    required Materia materia,
   }) {
     final now = DateTime.now();
 
     return SessionData(
       sessionId:
-          '${tipoRegistro}_p${parcial}_${DateFormat('yyyy-MM-dd_HH-mm-ss').format(now)}',
+          '${tipoRegistro}_p${parcial}_${materia.clave}_${DateFormat('yyyy-MM-dd_HH-mm-ss').format(now)}',
       fechaCreacion: UtilsFechas.fechaHora(now),
       activa: true,
       tipoRegistro: tipoRegistro,
       fechaClase: UtilsFechas.fechaClase(fechaClase),
       parcial: parcial,
+      materiaClave: materia.clave,
+      materiaNombre: materia.nombre,
     );
   }
 
@@ -662,6 +787,8 @@ class _ScannerPageState extends State<ScannerPage> {
       turno: turno,
       modalidad: modalidad,
       curp: curp,
+      materiaClave: sesion!.materiaClave,
+      materiaNombre: sesion!.materiaNombre,
       tipoRegistro: widget.tipoRegistro,
       fechaClase: UtilsFechas.fechaClase(widget.fechaClase),
       fechaHoraEscaneo: UtilsFechas.fechaHora(ahora),
@@ -791,6 +918,16 @@ class _ScannerPageState extends State<ScannerPage> {
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 7),
+                        Text(
+                          materiaSesion.isEmpty ? 'Materia: —' : 'Materia: $materiaSesion',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFE3C076),
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 8),

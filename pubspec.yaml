@@ -45,3 +45,4 @@ flutter:
   assets:
     - assets/sounds/success_beep.wav
     - assets/sounds/error_beep.wav
+    - assets/data/materias_2026.json

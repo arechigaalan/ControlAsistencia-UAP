@@ -56,6 +56,8 @@ class _DetalleSesionPageState extends State<DetalleSesionPage> {
           sessionId: widget.sessionId,
           fechaClase: widget.fechaClase,
           parcial: widget.parcial,
+          materiaClave: registros.isNotEmpty ? registros.first.materiaClave : '',
+          materiaNombre: registros.isNotEmpty ? registros.first.materiaNombre : 'Materia',
         ),
       ),
     );
