@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 
 import '../models/materia.dart';
-import '../models/parcial_config.dart';
 import '../models/registro_asistencia.dart';
 import '../models/session_data.dart';
 import 'database_service.dart';
@@ -108,6 +107,29 @@ class LocalStorage {
     return SessionData.fromMap(rows.first);
   }
 
+  static Future<void> quitarJustificacionManual({
+    required String sessionId,
+    required String curp,
+  }) async {
+    final db = await DatabaseService.database;
+
+    await db.delete(
+      'registros',
+      where: '''
+        session_id = ?
+        AND curp = ?
+        AND tipo_registro = ?
+        AND codigo = ?
+      ''',
+      whereArgs: [
+        sessionId,
+        curp,
+        'justificada',
+        'JUSTIFICACION_MANUAL',
+      ],
+    );
+  }
+
   static Future<void> guardarUltimoCodigo(String codigo) async {
     final db = await DatabaseService.database;
 
@@ -209,63 +231,12 @@ class LocalStorage {
     await db.delete('registros');
     await db.delete('sesiones');
     await db.delete('alumnos');
-    await db.delete('parciales');
 
     await db.delete(
       'app_state',
       where: 'key IN (?, ?)',
       whereArgs: ['current_session_id', 'ultimo_codigo'],
     );
-  }
-
-  static Future<bool> parcialesConfigurados() async {
-    final db = await DatabaseService.database;
-
-    final result = await db.rawQuery('SELECT COUNT(*) AS total FROM parciales');
-
-    final total = (result.first['total'] as int?) ?? 0;
-    return total > 0;
-  }
-
-  static Future<List<ParcialConfig>> obtenerParciales() async {
-    final db = await DatabaseService.database;
-
-    final rows = await db.query('parciales', orderBy: 'numero ASC');
-
-    return rows.map(ParcialConfig.fromMap).toList();
-  }
-
-  static Future<void> guardarParciales(List<ParcialConfig> parciales) async {
-    final db = await DatabaseService.database;
-
-    await db.transaction((txn) async {
-      await txn.delete('parciales');
-
-      for (final parcial in parciales) {
-        await txn.insert(
-          'parciales',
-          parcial.toMap(),
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
-      }
-    });
-  }
-
-  static Future<int?> obtenerParcialPorFecha(String fechaClase) async {
-    final db = await DatabaseService.database;
-
-    final rows = await db.query(
-      'parciales',
-      where: '? BETWEEN fecha_inicio AND fecha_fin',
-      whereArgs: [fechaClase],
-      limit: 1,
-    );
-
-    if (rows.isEmpty) return null;
-
-    return rows.first['numero'] is int
-        ? rows.first['numero'] as int
-        : int.tryParse(rows.first['numero'].toString());
   }
 
   // =========================
@@ -323,6 +294,40 @@ class LocalStorage {
       ''',
       [plantel, semestre, grupo, turno, modalidad, materiaClave],
     );
+  }
+
+
+  static Future<List<int>> obtenerParcialesPorGrupoMateria({
+    required String plantel,
+    required String semestre,
+    required String grupo,
+    required String turno,
+    required String modalidad,
+    required String materiaClave,
+  }) async {
+    final db = await DatabaseService.database;
+
+    final rows = await db.rawQuery(
+      '''
+      SELECT DISTINCT parcial
+      FROM registros
+      WHERE plantel = ?
+        AND semestre = ?
+        AND grupo = ?
+        AND turno = ?
+        AND modalidad = ?
+        AND materia_clave = ?
+      ORDER BY parcial ASC
+      ''',
+      [plantel, semestre, grupo, turno, modalidad, materiaClave],
+    );
+
+    return rows
+        .map((row) => row['parcial'] is int
+            ? row['parcial'] as int
+            : int.tryParse((row['parcial'] ?? '').toString()) ?? 0)
+        .where((p) => p >= 1 && p <= 5)
+        .toList();
   }
 
   static Future<int> contarSesionesPorGrupoYParcial({

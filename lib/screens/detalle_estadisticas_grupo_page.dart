@@ -50,16 +50,22 @@ class _DetalleEstadisticasGrupoPageState
   }
 
   Future<void> cargarParciales() async {
-    final parciales = await LocalStorage.obtenerParciales();
-
-    final disponibles = parciales.map((p) => p.numero).toList()..sort();
+    final disponibles = await LocalStorage.obtenerParcialesPorGrupoMateria(
+      plantel: widget.plantel,
+      semestre: widget.semestre,
+      grupo: widget.grupo,
+      turno: widget.turno,
+      modalidad: widget.modalidad,
+      materiaClave: widget.materiaClave,
+    );
 
     if (disponibles.isEmpty) {
-      disponibles.add(1);
+      parcialesDisponibles = [1, 2, 3, 4, 5];
+    } else {
+      parcialesDisponibles = disponibles;
     }
 
-    parcialSeleccionado = disponibles.first;
-    parcialesDisponibles = disponibles;
+    parcialSeleccionado = parcialesDisponibles.first;
 
     await cargarEstadisticas();
   }
@@ -278,8 +284,8 @@ class _DetalleEstadisticasGrupoPageState
 
                         return InkWell(
                           borderRadius: BorderRadius.circular(16),
-                          onTap: () {
-                            Navigator.push(
+                          onTap: () async {
+                            await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => DetalleAlumnoEstadisticaPage(
@@ -297,6 +303,8 @@ class _DetalleEstadisticasGrupoPageState
                                 ),
                               ),
                             );
+                            if (!mounted) return;
+                            await cargarEstadisticas();
                           },
                           child: Container(
                             padding: const EdgeInsets.all(14),

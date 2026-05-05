@@ -1,15 +1,21 @@
 [
   {
-    "clave": "02FIS1",
-    "nombre": "FISICA I",
+    "clave": "02CIS1",
+    "nombre": "CIENCIAS SOCIALES I",
     "semestre": "1",
     "plan": "04"
   },
   {
-    "clave": "02HUN1",
-    "nombre": "HUMANIDADES  I",
+    "clave": "CS1102",
+    "nombre": "CIENCIAS SOCIALES I",
     "semestre": "1",
-    "plan": "04"
+    "plan": "05"
+  },
+  {
+    "clave": "CDC102",
+    "nombre": "CLUBES DE CIENCIA",
+    "semestre": "1",
+    "plan": "05"
   },
   {
     "clave": "02COP1",
@@ -18,10 +24,46 @@
     "plan": "04"
   },
   {
-    "clave": "02CIS1",
-    "nombre": "CIENCIAS SOCIALES I",
+    "clave": "CD1102",
+    "nombre": "CULTURA DIGITAL I",
+    "semestre": "1",
+    "plan": "05"
+  },
+  {
+    "clave": "DAN102",
+    "nombre": "DANZA",
+    "semestre": "1",
+    "plan": "05"
+  },
+  {
+    "clave": "DCI102",
+    "nombre": "DIVULGACION CIENTIFICA",
+    "semestre": "1",
+    "plan": "05"
+  },
+  {
+    "clave": "02FIS1",
+    "nombre": "FISICA I",
     "semestre": "1",
     "plan": "04"
+  },
+  {
+    "clave": "FUT102",
+    "nombre": "FUTBOL",
+    "semestre": "1",
+    "plan": "05"
+  },
+  {
+    "clave": "02HUN1",
+    "nombre": "HUMANIDADES  I",
+    "semestre": "1",
+    "plan": "04"
+  },
+  {
+    "clave": "HU1102",
+    "nombre": "HUMANIDADES I",
+    "semestre": "1",
+    "plan": "05"
   },
   {
     "clave": "02ING1",
@@ -30,10 +72,64 @@
     "plan": "04"
   },
   {
+    "clave": "IN1102",
+    "nombre": "INGLES I",
+    "semestre": "1",
+    "plan": "05"
+  },
+  {
+    "clave": "IPF102",
+    "nombre": "INT. AL PENSAMIENTO FISICO",
+    "semestre": "1",
+    "plan": "05"
+  },
+  {
+    "clave": "LR1102",
+    "nombre": "LECTURA Y REDACCION I",
+    "semestre": "1",
+    "plan": "05"
+  },
+  {
+    "clave": "LCR102",
+    "nombre": "LITERATURA CREATIVA",
+    "semestre": "1",
+    "plan": "05"
+  },
+  {
     "clave": "02MAT1",
     "nombre": "MATEMATICAS I",
     "semestre": "1",
     "plan": "04"
+  },
+  {
+    "clave": "MAR102",
+    "nombre": "MATEMATICAS RECREATIVAS",
+    "semestre": "1",
+    "plan": "05"
+  },
+  {
+    "clave": "MUS102",
+    "nombre": "MUSICA",
+    "semestre": "1",
+    "plan": "05"
+  },
+  {
+    "clave": "OE1102",
+    "nombre": "ORIENTACION EDUCATIVA I",
+    "semestre": "1",
+    "plan": "05"
+  },
+  {
+    "clave": "PM1102",
+    "nombre": "PENSAMIENTO MATEMATICO I",
+    "semestre": "1",
+    "plan": "05"
+  },
+  {
+    "clave": "PYD102",
+    "nombre": "PINTURA Y DIBUJO",
+    "semestre": "1",
+    "plan": "05"
   },
   {
     "clave": "02TAL1",
@@ -42,10 +138,82 @@
     "plan": "04"
   },
   {
-    "clave": "02QUI1",
-    "nombre": "QUIMICA I",
+    "clave": "TEA102",
+    "nombre": "TEATRO",
+    "semestre": "1",
+    "plan": "05"
+  },
+  {
+    "clave": "VOL102",
+    "nombre": "VOLEIBOL",
+    "semestre": "1",
+    "plan": "05"
+  },
+  {
+    "clave": "02CIS2",
+    "nombre": "CIENCIAS SOCIALES II",
     "semestre": "2",
     "plan": "04"
+  },
+  {
+    "clave": "CS2102",
+    "nombre": "CIENCIAS SOCIALES II",
+    "semestre": "2",
+    "plan": "05"
+  },
+  {
+    "clave": "02COP2",
+    "nombre": "COMPUTACION II",
+    "semestre": "2",
+    "plan": "04"
+  },
+  {
+    "clave": "CD2102",
+    "nombre": "CULTURA DIGITAL II",
+    "semestre": "2",
+    "plan": "05"
+  },
+  {
+    "clave": "02FIS2",
+    "nombre": "FISICA II",
+    "semestre": "2",
+    "plan": "04"
+  },
+  {
+    "clave": "FDN102",
+    "nombre": "FUERZAS EN LA NATURALEZA",
+    "semestre": "2",
+    "plan": "05"
+  },
+  {
+    "clave": "02HUM2",
+    "nombre": "HUMANIDADES  II",
+    "semestre": "2",
+    "plan": "04"
+  },
+  {
+    "clave": "HU2102",
+    "nombre": "HUMANIDADES II",
+    "semestre": "2",
+    "plan": "05"
+  },
+  {
+    "clave": "02ING2",
+    "nombre": "INGLES II",
+    "semestre": "2",
+    "plan": "04"
+  },
+  {
+    "clave": "IN2102",
+    "nombre": "INGLES II",
+    "semestre": "2",
+    "plan": "05"
+  },
+  {
+    "clave": "LR2102",
+    "nombre": "LECTURA Y REDACCION II",
+    "semestre": "2",
+    "plan": "05"
   },
   {
     "clave": "02MAT2",
@@ -54,8 +222,20 @@
     "plan": "04"
   },
   {
-    "clave": "02COP2",
-    "nombre": "COMPUTACION II",
+    "clave": "OE2102",
+    "nombre": "ORIENTACION EDUCATIVA II",
+    "semestre": "2",
+    "plan": "05"
+  },
+  {
+    "clave": "PM2102",
+    "nombre": "PENSAMIENTO MATEMATICO II",
+    "semestre": "2",
+    "plan": "05"
+  },
+  {
+    "clave": "02QUI1",
+    "nombre": "QUIMICA I",
     "semestre": "2",
     "plan": "04"
   },
@@ -66,27 +246,15 @@
     "plan": "04"
   },
   {
-    "clave": "02CIS2",
-    "nombre": "CIENCIAS SOCIALES II",
-    "semestre": "2",
+    "clave": "02BIO1",
+    "nombre": "BIOLOGIA I",
+    "semestre": "3",
     "plan": "04"
   },
   {
-    "clave": "02FIS2",
-    "nombre": "FISICA II",
-    "semestre": "2",
-    "plan": "04"
-  },
-  {
-    "clave": "02HUM2",
-    "nombre": "HUMANIDADES  II",
-    "semestre": "2",
-    "plan": "04"
-  },
-  {
-    "clave": "02ING2",
-    "nombre": "INGLES II",
-    "semestre": "2",
+    "clave": "02CIS3",
+    "nombre": "CIENCIAS SOCIALES III",
+    "semestre": "3",
     "plan": "04"
   },
   {
@@ -126,30 +294,6 @@
     "plan": "04"
   },
   {
-    "clave": "02BIO1",
-    "nombre": "BIOLOGIA I",
-    "semestre": "3",
-    "plan": "04"
-  },
-  {
-    "clave": "02CIS3",
-    "nombre": "CIENCIAS SOCIALES III",
-    "semestre": "3",
-    "plan": "04"
-  },
-  {
-    "clave": "02HUM4",
-    "nombre": "HUMANIDADES IV",
-    "semestre": "4",
-    "plan": "04"
-  },
-  {
-    "clave": "02MAT4",
-    "nombre": "MATEMATICAS IV",
-    "semestre": "4",
-    "plan": "04"
-  },
-  {
     "clave": "02CIEX",
     "nombre": "CIENCIAS EXPERIMENTALES",
     "semestre": "4",
@@ -168,8 +312,20 @@
     "plan": "04"
   },
   {
+    "clave": "02HUM4",
+    "nombre": "HUMANIDADES IV",
+    "semestre": "4",
+    "plan": "04"
+  },
+  {
     "clave": "02ING4",
     "nombre": "INGLES IV",
+    "semestre": "4",
+    "plan": "04"
+  },
+  {
+    "clave": "02MAT4",
+    "nombre": "MATEMATICAS IV",
     "semestre": "4",
     "plan": "04"
   },
@@ -183,540 +339,222 @@
     "clave": "02ADM1",
     "nombre": "ADMINISTRACION I",
     "semestre": "5",
-    "plan": "EA"
-  },
-  {
-    "clave": "02CON1",
-    "nombre": "CONTADURIA I",
-    "semestre": "5",
-    "plan": "EA"
-  },
-  {
-    "clave": "02ECO1",
-    "nombre": "ECOLOGIA I",
-    "semestre": "5",
-    "plan": "EA"
-  },
-  {
-    "clave": "02EOO1",
-    "nombre": "ECONOMIA I",
-    "semestre": "5",
-    "plan": "EA"
-  },
-  {
-    "clave": "02ESA1",
-    "nombre": "ESTRATEGIAS DE APRENDIZAJE I",
-    "semestre": "5",
-    "plan": "EA"
-  },
-  {
-    "clave": "025ING",
-    "nombre": "INGLES V",
-    "semestre": "5",
-    "plan": "EA"
-  },
-  {
-    "clave": "02ESTA",
-    "nombre": "ESTADISTICA",
-    "semestre": "5",
-    "plan": "EA"
-  },
-  {
-    "clave": "02SOM1",
-    "nombre": "SOCIEDAD MEXICANA I",
-    "semestre": "5",
-    "plan": "EA"
-  },
-  {
-    "clave": "02MAT5",
-    "nombre": "MATEMATICAS V",
-    "semestre": "5",
-    "plan": "FM"
-  },
-  {
-    "clave": "02QUI3",
-    "nombre": "QUIMICA III",
-    "semestre": "5",
-    "plan": "FM"
-  },
-  {
-    "clave": "02ESA1",
-    "nombre": "ESTRATEGIAS DE APRENDIZAJE I",
-    "semestre": "5",
-    "plan": "FM"
-  },
-  {
-    "clave": "025ING",
-    "nombre": "INGLES V",
-    "semestre": "5",
-    "plan": "FM"
-  },
-  {
-    "clave": "02ECO1",
-    "nombre": "ECOLOGIA I",
-    "semestre": "5",
-    "plan": "FM"
-  },
-  {
-    "clave": "02ESTA",
-    "nombre": "ESTADISTICA",
-    "semestre": "5",
-    "plan": "FM"
-  },
-  {
-    "clave": "02FIS3",
-    "nombre": "FISICA III",
-    "semestre": "5",
-    "plan": "FM"
-  },
-  {
-    "clave": "02SOM1",
-    "nombre": "SOCIEDAD MEXICANA I",
-    "semestre": "5",
-    "plan": "FM"
-  },
-  {
-    "clave": "025ING",
-    "nombre": "INGLES V",
-    "semestre": "5",
-    "plan": "QB"
+    "plan": "04"
   },
   {
     "clave": "02ANCO",
     "nombre": "ANATOMIA COMPARADA",
     "semestre": "5",
-    "plan": "QB"
+    "plan": "04"
   },
   {
     "clave": "02BIO2",
     "nombre": "BIOQUIMICA",
     "semestre": "5",
-    "plan": "QB"
+    "plan": "04"
   },
   {
     "clave": "02CIE1",
     "nombre": "CIENCIAS DE LA SALUD I",
     "semestre": "5",
-    "plan": "QB"
+    "plan": "04"
   },
   {
-    "clave": "02ESA1",
-    "nombre": "ESTRATEGIAS DE APRENDIZAJE I",
+    "clave": "02CON1",
+    "nombre": "CONTADURIA I",
     "semestre": "5",
-    "plan": "QB"
-  },
-  {
-    "clave": "02ECO1",
-    "nombre": "ECOLOGIA I",
-    "semestre": "5",
-    "plan": "QB"
-  },
-  {
-    "clave": "02QUI3",
-    "nombre": "QUIMICA III",
-    "semestre": "5",
-    "plan": "QB"
-  },
-  {
-    "clave": "02SOM1",
-    "nombre": "SOCIEDAD MEXICANA I",
-    "semestre": "5",
-    "plan": "QB"
+    "plan": "04"
   },
   {
     "clave": "02DER1",
     "nombre": "DERECHO I",
     "semestre": "5",
-    "plan": "SH"
-  },
-  {
-    "clave": "02ESA1",
-    "nombre": "ESTRATEGIAS DE APRENDIZAJE I",
-    "semestre": "5",
-    "plan": "SH"
+    "plan": "04"
   },
   {
     "clave": "02ECO1",
     "nombre": "ECOLOGIA I",
     "semestre": "5",
-    "plan": "SH"
+    "plan": "04"
   },
   {
-    "clave": "02MOE1",
-    "nombre": "MODERNIDAD I",
+    "clave": "02EOO1",
+    "nombre": "ECONOMIA I",
     "semestre": "5",
-    "plan": "SH"
+    "plan": "04"
   },
   {
-    "clave": "02PSI1",
-    "nombre": "PSICOLOGIA I",
+    "clave": "02ESTA",
+    "nombre": "ESTADISTICA",
     "semestre": "5",
-    "plan": "SH"
+    "plan": "04"
+  },
+  {
+    "clave": "02ESA1",
+    "nombre": "ESTRATEGIAS DE APRENDIZAJE I",
+    "semestre": "5",
+    "plan": "04"
+  },
+  {
+    "clave": "02FIS3",
+    "nombre": "FISICA III",
+    "semestre": "5",
+    "plan": "04"
   },
   {
     "clave": "025ING",
     "nombre": "INGLES V",
     "semestre": "5",
-    "plan": "SH"
+    "plan": "04"
+  },
+  {
+    "clave": "02MAT5",
+    "nombre": "MATEMATICAS V",
+    "semestre": "5",
+    "plan": "04"
+  },
+  {
+    "clave": "02MOE1",
+    "nombre": "MODERNIDAD I",
+    "semestre": "5",
+    "plan": "04"
+  },
+  {
+    "clave": "02PSI1",
+    "nombre": "PSICOLOGIA I",
+    "semestre": "5",
+    "plan": "04"
+  },
+  {
+    "clave": "02QUI3",
+    "nombre": "QUIMICA III",
+    "semestre": "5",
+    "plan": "04"
   },
   {
     "clave": "02SOM1",
     "nombre": "SOCIEDAD MEXICANA I",
     "semestre": "5",
-    "plan": "SH"
+    "plan": "04"
   },
   {
     "clave": "02TELI",
     "nombre": "TEORIA LITERARIA",
     "semestre": "5",
-    "plan": "SH"
-  },
-  {
-    "clave": "026ING",
-    "nombre": "INGLES VI",
-    "semestre": "6",
-    "plan": "EA"
-  },
-  {
-    "clave": "02EOO2",
-    "nombre": "ECONOMIA II",
-    "semestre": "6",
-    "plan": "EA"
-  },
-  {
-    "clave": "02ECO2",
-    "nombre": "ECOLOGIA II",
-    "semestre": "6",
-    "plan": "EA"
-  },
-  {
-    "clave": "02SOM2",
-    "nombre": "SOCIEDAD MEXICANA II",
-    "semestre": "6",
-    "plan": "EA"
+    "plan": "04"
   },
   {
     "clave": "02ADM2",
     "nombre": "ADMINISTRACION II",
     "semestre": "6",
-    "plan": "EA"
-  },
-  {
-    "clave": "02CON2",
-    "nombre": "CONTADURIA II",
-    "semestre": "6",
-    "plan": "EA"
-  },
-  {
-    "clave": "02ESA2",
-    "nombre": "ESTRATEGIAS DE APRENDIZAJE II",
-    "semestre": "6",
-    "plan": "EA"
-  },
-  {
-    "clave": "02MAFI",
-    "nombre": "MATEMATICAS FINANCIERAS",
-    "semestre": "6",
-    "plan": "EA"
-  },
-  {
-    "clave": "02ESA2",
-    "nombre": "ESTRATEGIAS DE APRENDIZAJE II",
-    "semestre": "6",
-    "plan": "FM"
-  },
-  {
-    "clave": "02FIS4",
-    "nombre": "FISICA IV",
-    "semestre": "6",
-    "plan": "FM"
-  },
-  {
-    "clave": "02PROB",
-    "nombre": "PROBABILIDAD",
-    "semestre": "6",
-    "plan": "FM"
-  },
-  {
-    "clave": "026ING",
-    "nombre": "INGLES VI",
-    "semestre": "6",
-    "plan": "FM"
-  },
-  {
-    "clave": "02MAT6",
-    "nombre": "MATEMATICAS VI",
-    "semestre": "6",
-    "plan": "FM"
-  },
-  {
-    "clave": "02QUI4",
-    "nombre": "QUIMICA IV",
-    "semestre": "6",
-    "plan": "FM"
-  },
-  {
-    "clave": "02ECO2",
-    "nombre": "ECOLOGIA II",
-    "semestre": "6",
-    "plan": "FM"
-  },
-  {
-    "clave": "02SOM2",
-    "nombre": "SOCIEDAD MEXICANA II",
-    "semestre": "6",
-    "plan": "FM"
-  },
-  {
-    "clave": "026ING",
-    "nombre": "INGLES VI",
-    "semestre": "6",
-    "plan": "QB"
-  },
-  {
-    "clave": "02CIE2",
-    "nombre": "CIENCIAS DE LA SALUD II",
-    "semestre": "6",
-    "plan": "QB"
-  },
-  {
-    "clave": "02FISI",
-    "nombre": "FISIOLOGIA Y ANATOMIA",
-    "semestre": "6",
-    "plan": "QB"
-  },
-  {
-    "clave": "02QUI4",
-    "nombre": "QUIMICA IV",
-    "semestre": "6",
-    "plan": "QB"
-  },
-  {
-    "clave": "02ECO2",
-    "nombre": "ECOLOGIA II",
-    "semestre": "6",
-    "plan": "QB"
-  },
-  {
-    "clave": "02SOM2",
-    "nombre": "SOCIEDAD MEXICANA II",
-    "semestre": "6",
-    "plan": "QB"
+    "plan": "04"
   },
   {
     "clave": "02BIL2",
     "nombre": "BIOLOGIA II",
     "semestre": "6",
-    "plan": "QB"
+    "plan": "04"
   },
   {
-    "clave": "02ESA2",
-    "nombre": "ESTRATEGIAS DE APRENDIZAJE II",
+    "clave": "02CIE2",
+    "nombre": "CIENCIAS DE LA SALUD II",
     "semestre": "6",
-    "plan": "QB"
+    "plan": "04"
+  },
+  {
+    "clave": "02CON2",
+    "nombre": "CONTADURIA II",
+    "semestre": "6",
+    "plan": "04"
   },
   {
     "clave": "02DER2",
     "nombre": "DERECHO  II",
     "semestre": "6",
-    "plan": "SH"
-  },
-  {
-    "clave": "02ESA2",
-    "nombre": "ESTRATEGIAS DE APRENDIZAJE II",
-    "semestre": "6",
-    "plan": "SH"
-  },
-  {
-    "clave": "02MOE2",
-    "nombre": "MODERNIDAD II",
-    "semestre": "6",
-    "plan": "SH"
-  },
-  {
-    "clave": "02PSI2",
-    "nombre": "PSICOLOGIA II",
-    "semestre": "6",
-    "plan": "SH"
-  },
-  {
-    "clave": "02SOM2",
-    "nombre": "SOCIEDAD MEXICANA II",
-    "semestre": "6",
-    "plan": "SH"
-  },
-  {
-    "clave": "02FILO",
-    "nombre": "FILOSOFIA",
-    "semestre": "6",
-    "plan": "SH"
-  },
-  {
-    "clave": "026ING",
-    "nombre": "INGLES VI",
-    "semestre": "6",
-    "plan": "SH"
+    "plan": "04"
   },
   {
     "clave": "02ECO2",
     "nombre": "ECOLOGIA II",
     "semestre": "6",
-    "plan": "SH"
+    "plan": "04"
   },
   {
-    "clave": "CD1102",
-    "nombre": "CULTURA DIGITAL I",
-    "semestre": "1",
-    "plan": "05"
+    "clave": "02EOO2",
+    "nombre": "ECONOMIA II",
+    "semestre": "6",
+    "plan": "04"
   },
   {
-    "clave": "CDC102",
-    "nombre": "CLUBES DE CIENCIA",
-    "semestre": "1",
-    "plan": "05"
+    "clave": "02ESA2",
+    "nombre": "ESTRATEGIAS DE APRENDIZAJE II",
+    "semestre": "6",
+    "plan": "04"
   },
   {
-    "clave": "CS1102",
-    "nombre": "CIENCIAS SOCIALES I",
-    "semestre": "1",
-    "plan": "05"
+    "clave": "02FILO",
+    "nombre": "FILOSOFIA",
+    "semestre": "6",
+    "plan": "04"
   },
   {
-    "clave": "DAN102",
-    "nombre": "DANZA",
-    "semestre": "1",
-    "plan": "05"
+    "clave": "02FIS4",
+    "nombre": "FISICA IV",
+    "semestre": "6",
+    "plan": "04"
   },
   {
-    "clave": "DCI102",
-    "nombre": "DIVULGACION CIENTIFICA",
-    "semestre": "1",
-    "plan": "05"
+    "clave": "02FISI",
+    "nombre": "FISIOLOGIA Y ANATOMIA",
+    "semestre": "6",
+    "plan": "04"
   },
   {
-    "clave": "FUT102",
-    "nombre": "FUTBOL",
-    "semestre": "1",
-    "plan": "05"
+    "clave": "026ING",
+    "nombre": "INGLES VI",
+    "semestre": "6",
+    "plan": "04"
   },
   {
-    "clave": "HU1102",
-    "nombre": "HUMANIDADES I",
-    "semestre": "1",
-    "plan": "05"
+    "clave": "02MAFI",
+    "nombre": "MATEMATICAS FINANCIERAS",
+    "semestre": "6",
+    "plan": "04"
   },
   {
-    "clave": "IN1102",
-    "nombre": "INGLES I",
-    "semestre": "1",
-    "plan": "05"
+    "clave": "02MAT6",
+    "nombre": "MATEMATICAS VI",
+    "semestre": "6",
+    "plan": "04"
   },
   {
-    "clave": "IPF102",
-    "nombre": "INT. AL PENSAMIENTO FISICO",
-    "semestre": "1",
-    "plan": "05"
+    "clave": "02MOE2",
+    "nombre": "MODERNIDAD II",
+    "semestre": "6",
+    "plan": "04"
   },
   {
-    "clave": "LCR102",
-    "nombre": "LITERATURA CREATIVA",
-    "semestre": "1",
-    "plan": "05"
+    "clave": "02PROB",
+    "nombre": "PROBABILIDAD",
+    "semestre": "6",
+    "plan": "04"
   },
   {
-    "clave": "LR1102",
-    "nombre": "LECTURA Y REDACCION I",
-    "semestre": "1",
-    "plan": "05"
+    "clave": "02PSI2",
+    "nombre": "PSICOLOGIA II",
+    "semestre": "6",
+    "plan": "04"
   },
   {
-    "clave": "MAR102",
-    "nombre": "MATEMATICAS RECREATIVAS",
-    "semestre": "1",
-    "plan": "05"
+    "clave": "02QUI4",
+    "nombre": "QUIMICA IV",
+    "semestre": "6",
+    "plan": "04"
   },
   {
-    "clave": "MUS102",
-    "nombre": "MUSICA",
-    "semestre": "1",
-    "plan": "05"
-  },
-  {
-    "clave": "OE1102",
-    "nombre": "ORIENTACION EDUCATIVA I",
-    "semestre": "1",
-    "plan": "05"
-  },
-  {
-    "clave": "PM1102",
-    "nombre": "PENSAMIENTO MATEMATICO I",
-    "semestre": "1",
-    "plan": "05"
-  },
-  {
-    "clave": "PYD102",
-    "nombre": "PINTURA Y DIBUJO",
-    "semestre": "1",
-    "plan": "05"
-  },
-  {
-    "clave": "TEA102",
-    "nombre": "TEATRO",
-    "semestre": "1",
-    "plan": "05"
-  },
-  {
-    "clave": "VOL102",
-    "nombre": "VOLEIBOL",
-    "semestre": "1",
-    "plan": "05"
-  },
-  {
-    "clave": "CS2102",
-    "nombre": "CIENCIAS SOCIALES II",
-    "semestre": "2",
-    "plan": "05"
-  },
-  {
-    "clave": "PM2102",
-    "nombre": "PENSAMIENTO MATEMATICO II",
-    "semestre": "2",
-    "plan": "05"
-  },
-  {
-    "clave": "FDN102",
-    "nombre": "FUERZAS EN LA NATURALEZA",
-    "semestre": "2",
-    "plan": "05"
-  },
-  {
-    "clave": "LR2102",
-    "nombre": "LECTURA Y REDACCION II",
-    "semestre": "2",
-    "plan": "05"
-  },
-  {
-    "clave": "IN2102",
-    "nombre": "INGLES II",
-    "semestre": "2",
-    "plan": "05"
-  },
-  {
-    "clave": "OE2102",
-    "nombre": "ORIENTACION EDUCATIVA II",
-    "semestre": "2",
-    "plan": "05"
-  },
-  {
-    "clave": "CD2102",
-    "nombre": "CULTURA DIGITAL II",
-    "semestre": "2",
-    "plan": "05"
-  },
-  {
-    "clave": "HU2102",
-    "nombre": "HUMANIDADES II",
-    "semestre": "2",
-    "plan": "05"
+    "clave": "02SOM2",
+    "nombre": "SOCIEDAD MEXICANA II",
+    "semestre": "6",
+    "plan": "04"
   }
 ]

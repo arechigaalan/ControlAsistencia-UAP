@@ -13,7 +13,6 @@ import '../services/turno_helper.dart';
 import '../services/utils_fechas.dart';
 import '../widgets/lista_registros_sesion.dart';
 import '../widgets/overlay_estado.dart';
-import 'configurar_parciales_page.dart';
 
 class ScannerPage extends StatefulWidget {
   final String tipoRegistro;
@@ -190,7 +189,7 @@ class _ScannerPageState extends State<ScannerPage> {
                             ),
                           ),
                           subtitle: Text(
-                            'Clave: ${materia.clave} · Semestre: ${materia.semestre}',
+                            '${materia.semestre}° semestre · Plan ${materia.plan}',
                             style: const TextStyle(color: Color(0xFF5B6573)),
                           ),
                           onTap: () => Navigator.of(sheetContext).pop(materia),
@@ -207,100 +206,87 @@ class _ScannerPageState extends State<ScannerPage> {
     );
   }
 
+
+  Future<int?> seleccionarParcialSesion() async {
+    if (!mounted) return null;
+
+    return showModalBottomSheet<int>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE5E7EB),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '¿A qué parcial pertenece esta sesión?',
+                  style: TextStyle(
+                    color: Color(0xFF01152E),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Selecciona el parcial que corresponde a esta clase.',
+                  style: TextStyle(color: Color(0xFF5B6573), fontSize: 14),
+                ),
+                const SizedBox(height: 14),
+                ...List.generate(5, (index) {
+                  final numero = index + 1;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Card(
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: const Color(0xFFFFF8E8),
+                          child: Text(
+                            '$numero',
+                            style: const TextStyle(
+                              color: Color(0xFF01152E),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          'Parcial $numero',
+                          style: const TextStyle(
+                            color: Color(0xFF01152E),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        onTap: () => Navigator.of(sheetContext).pop(numero),
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> initSesion() async {
     try {
       final fechaActual = UtilsFechas.fechaClase(widget.fechaClase);
-      final parcialCalculado = await LocalStorage.obtenerParcialPorFecha(
-        fechaActual,
-      );
-
-      if (parcialCalculado == null) {
-        if (!mounted) return;
-
-        final irConfig = await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (dialogContext) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(22),
-            ),
-            title: const Text(
-              'Parcial no configurado',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF01152E),
-              ),
-            ),
-            content: const Text(
-              textAlign: TextAlign.justify,
-              'La fecha actual no pertenece a ningún parcial. Debe configurar o modificar las fechas de los parciales para continuar.',
-              style: TextStyle(color: Color(0xFF5B6573), fontSize: 15),
-            ),
-            actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-            actions: [
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 48,
-                      child: FilledButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(false),
-                        style: _secondaryDialogButtonStyle(),
-                        child: const Text(
-                          'Cancelar',
-                          style: TextStyle(fontSize: 12.5),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 48,
-                      child: FilledButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(true),
-                        style: _primaryDialogButtonStyle(),
-                        child: const Text(
-                          'Configurar',
-                          style: TextStyle(fontSize: 12.5),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-
-        if (!mounted) return;
-
-        if (irConfig == true) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ConfigurarParcialesPage()),
-          );
-
-          if (!mounted) return;
-          final nuevoParcial = await LocalStorage.obtenerParcialPorFecha(
-            fechaActual,
-          );
-
-          if (nuevoParcial == null) {
-            if (!mounted) return;
-            Navigator.of(context).pop();
-            return;
-          }
-
-          parcial = nuevoParcial;
-        } else {
-          Navigator.of(context).pop();
-          return;
-        }
-      } else {
-        parcial = parcialCalculado;
-      }
 
       final materia = await seleccionarMateriaSesion();
       if (materia == null) {
@@ -310,6 +296,14 @@ class _ScannerPageState extends State<ScannerPage> {
       }
       materiaSeleccionada = materia;
       materiaSesion = materia.nombre;
+
+      final parcialElegido = await seleccionarParcialSesion();
+      if (parcialElegido == null) {
+        if (!mounted) return;
+        Navigator.of(context).pop();
+        return;
+      }
+      parcial = parcialElegido;
 
       final sesionGuardada = await LocalStorage.obtenerSesion();
 
@@ -389,16 +383,11 @@ class _ScannerPageState extends State<ScannerPage> {
         await _crearNuevaSesion();
       }
     } catch (_) {
-      if (materiaSeleccionada == null) {
-        final materia = await seleccionarMateriaSesion();
-        if (materia == null) {
-          if (mounted) Navigator.of(context).pop();
-          return;
-        }
-        materiaSeleccionada = materia;
-        materiaSesion = materia.nombre;
-      }
-      await _crearNuevaSesion();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No fue posible iniciar la sesión')),
+      );
+      Navigator.of(context).pop();
     }
   }
 

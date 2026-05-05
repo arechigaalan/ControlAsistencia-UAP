@@ -44,8 +44,8 @@ class _ConfigurarMateriasPageState extends State<ConfigurarMateriasPage> {
 
     return catalogo.where((m) {
       return m.nombre.toUpperCase().contains(q) ||
-          m.clave.toUpperCase().contains(q) ||
-          m.semestre.toUpperCase().contains(q);
+          m.semestre.toUpperCase().contains(q) ||
+          m.plan.toUpperCase().contains(q);
     }).toList();
   }
 
@@ -98,7 +98,9 @@ class _ConfigurarMateriasPageState extends State<ConfigurarMateriasPage> {
         if (didPop) return;
         final salir = await confirmarSalida();
         if (!mounted) return;
-        if (salir) Navigator.of(context).pop(false);
+        if (salir && context.mounted) {
+          Navigator.of(context).pop(false);
+        }
       },
       child: Scaffold(
         appBar: AppBar(
@@ -131,7 +133,7 @@ class _ConfigurarMateriasPageState extends State<ConfigurarMateriasPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Después, al iniciar una sesión de escaneo, solo aparecerán estas materias.',
+                      'Después, al iniciar una sesión de escaneo, sólo aparecerán estas materias.',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 13,
@@ -154,7 +156,7 @@ class _ConfigurarMateriasPageState extends State<ConfigurarMateriasPage> {
               child: TextField(
                 onChanged: (value) => setState(() => busqueda = value),
                 decoration: InputDecoration(
-                  hintText: 'Buscar materia o clave',
+                  hintText: 'Buscar materia, semestre o plan',
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
                   fillColor: Colors.white,
@@ -195,7 +197,7 @@ class _ConfigurarMateriasPageState extends State<ConfigurarMateriasPage> {
                         ),
                       ),
                       subtitle: Text(
-                        'Plan: ${materia.plan} · Semestre: ${materia.semestre}',
+                        '${materia.semestre}° semestre · Plan ${materia.plan}',
                         style: const TextStyle(color: Color(0xFF5B6573)),
                       ),
                     ),

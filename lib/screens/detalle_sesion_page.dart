@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../models/registro_asistencia.dart';
 import '../services/local_storage.dart';
 import '../widgets/lista_registros_sesion.dart';
-import 'justificar_page.dart';
 
 class DetalleSesionPage extends StatefulWidget {
   final String sessionId;
@@ -48,25 +47,6 @@ class _DetalleSesionPageState extends State<DetalleSesionPage> {
     });
   }
 
-  Future<void> justificar() async {
-    final resultado = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => JustificarPage(
-          sessionId: widget.sessionId,
-          fechaClase: widget.fechaClase,
-          parcial: widget.parcial,
-          materiaClave: registros.isNotEmpty ? registros.first.materiaClave : '',
-          materiaNombre: registros.isNotEmpty ? registros.first.materiaNombre : 'Materia',
-        ),
-      ),
-    );
-
-    if (resultado == true) {
-      await cargarRegistros();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (cargando) {
@@ -104,7 +84,7 @@ class _DetalleSesionPageState extends State<DetalleSesionPage> {
                       fontSize: 16,
                     ),
                   ),
-                  const SizedBox(height: 8), // espacio vertical
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Text(
@@ -114,7 +94,7 @@ class _DetalleSesionPageState extends State<DetalleSesionPage> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: 16), // espacio horizontal
+                      const SizedBox(width: 16),
                       Text(
                         'Alumnos: ${registros.length}',
                         style: const TextStyle(
@@ -130,7 +110,7 @@ class _DetalleSesionPageState extends State<DetalleSesionPage> {
           ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -144,20 +124,6 @@ class _DetalleSesionPageState extends State<DetalleSesionPage> {
                   ],
                 ),
                 child: ListaRegistrosSesion(registrosSesion: registros),
-              ),
-            ),
-          ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: justificar,
-                  icon: const Icon(Icons.assignment_turned_in),
-                  label: const Text('Justificar'),
-                ),
               ),
             ),
           ),

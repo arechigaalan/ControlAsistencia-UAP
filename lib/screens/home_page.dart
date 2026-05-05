@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../services/exportador_csv.dart';
 import '../services/local_storage.dart';
 import 'configurar_materias_page.dart';
-import 'configurar_parciales_page.dart';
 import 'estadisticas_grupos_page.dart';
 import 'scanner_page.dart';
 import 'ver_asistencias_page.dart';
@@ -29,16 +28,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> verificarConfiguracion() async {
-    final parcialesConfigurados = await LocalStorage.parcialesConfigurados();
-    if (!parcialesConfigurados && mounted) {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const ConfigurarParcialesPage(obligatorio: true),
-        ),
-      );
-    }
-
     final materiasConfiguradas = await LocalStorage.materiasDocenteConfiguradas();
     if (!materiasConfiguradas && mounted) {
       await Navigator.push(
@@ -135,11 +124,6 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 12),
               ListTile(
-                leading: const Icon(Icons.date_range, color: Color(0xFF01152E)),
-                title: const Text('Configurar parciales'),
-                onTap: () => Navigator.of(sheetContext).pop('parciales'),
-              ),
-              ListTile(
                 leading: const Icon(Icons.menu_book, color: Color(0xFF01152E)),
                 title: const Text('Configurar materias'),
                 onTap: () => Navigator.of(sheetContext).pop('materias'),
@@ -152,12 +136,7 @@ class _HomePageState extends State<HomePage> {
 
     if (!mounted || opcion == null) return;
 
-    if (opcion == 'parciales') {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const ConfigurarParcialesPage()),
-      );
-    } else if (opcion == 'materias') {
+    if (opcion == 'materias') {
       await Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const ConfigurarMateriasPage()),
@@ -335,7 +314,7 @@ class _HomePageState extends State<HomePage> {
             _HomeActionCard(
               icon: Icons.list_alt,
               title: 'Ver asistencias',
-              subtitle: 'Consultar sesiones anteriores y justificar alumnos.',
+              subtitle: 'Consultar sesiones anteriores registradas.',
               onTap: hayRegistros ? irVerAsistencias : null,
             ),
             const SizedBox(height: 12),
