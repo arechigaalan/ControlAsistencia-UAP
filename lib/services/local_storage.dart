@@ -239,6 +239,214 @@ class LocalStorage {
     );
   }
 
+  static Future<void> guardarCatalogoMaterias(List<Materia> materias) async {
+  final db = await DatabaseService.database;
+  final batch = db.batch();
+
+  for (final materia in materias) {
+    batch.insert(
+      'materias',
+      materia.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  await batch.commit(noResult: true);
+}
+
+static Future<List<Materia>> obtenerCatalogoMaterias() async {
+  final db = await DatabaseService.database;
+
+  final rows = await db.query(
+    'materias',
+    orderBy: 'CAST(semestre AS INTEGER) ASC, plan ASC, nombre ASC',
+  );
+
+  return rows.map(Materia.fromMap).toList();
+}
+
+static Future<bool> catalogoMateriasExiste() async {
+  final db = await DatabaseService.database;
+
+  final result = await db.rawQuery(
+    'SELECT COUNT(*) AS total FROM materias',
+  );
+
+  final total = (result.first['total'] as int?) ?? 0;
+  return total > 0;
+}
+
+static Future<void> reemplazarCatalogoMaterias(List<Materia> materias) async {
+  final db = await DatabaseService.database;
+  final batch = db.batch();
+
+  batch.delete('materias');
+
+  for (final materia in materias) {
+    batch.insert(
+      'materias',
+      materia.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  await batch.commit(noResult: true);
+}
+
+static Future<void> actualizarParcialSesionYRegistros({
+  required String sessionId,
+  required int parcial,
+}) async {
+  final db = await DatabaseService.database;
+
+  await db.transaction((txn) async {
+    await txn.update(
+      'sesiones',
+      {'parcial': parcial},
+      where: 'session_id = ?',
+      whereArgs: [sessionId],
+    );
+
+    await txn.update(
+      'registros',
+      {'parcial': parcial},
+      where: 'session_id = ?',
+      whereArgs: [sessionId],
+    );
+  });
+}
+
+static Future<void> guardarModoHorizontalExperimental(bool activo) async {
+  final db = await DatabaseService.database;
+
+  await db.insert(
+    'app_state',
+    {
+      'key': 'modo_horizontal_experimental',
+      'value': activo ? '1' : '0',
+    },
+    conflictAlgorithm: ConflictAlgorithm.replace,
+  );
+}
+
+static Future<bool> obtenerModoHorizontalExperimental() async {
+  final db = await DatabaseService.database;
+
+  final rows = await db.query(
+    'app_state',
+    where: 'key = ?',
+    whereArgs: ['modo_horizontal_experimental'],
+    limit: 1,
+  );
+
+  if (rows.isEmpty) return false;
+
+  return (rows.first['value'] ?? '0').toString() == '1';
+}
+
+static Future<void> eliminarSesionPorId(String sessionId) async {
+  final db = await DatabaseService.database;
+
+  await db.delete(
+    'sesiones',
+    where: 'session_id = ?',
+    whereArgs: [sessionId],
+  );
+
+  await db.delete(
+    'app_state',
+    where: 'key = ? AND value = ?',
+    whereArgs: ['current_session_id', sessionId],
+  );
+}
+
+static Future<int> obtenerVersionCatalogoMaterias() async {
+  final db = await DatabaseService.database;
+
+  final rows = await db.query(
+    'app_state',
+    where: 'key = ?',
+    whereArgs: ['materias_catalogo_version'],
+    limit: 1,
+  );
+
+  if (rows.isEmpty) return 0;
+
+  return int.tryParse((rows.first['value'] ?? '0').toString()) ?? 0;
+}
+
+static Future<void> actualizarMateriaSesionYRegistros({
+  required String sessionId,
+  required String materiaClave,
+  required String materiaNombre,
+}) async {
+  final db = await DatabaseService.database;
+
+  await db.transaction((txn) async {
+    await txn.update(
+      'sesiones',
+      {
+        'materia_clave': materiaClave,
+        'materia_nombre': materiaNombre,
+      },
+      where: 'session_id = ?',
+      whereArgs: [sessionId],
+    );
+
+    await txn.update(
+      'registros',
+      {
+        'materia_clave': materiaClave,
+        'materia_nombre': materiaNombre,
+      },
+      where: 'session_id = ?',
+      whereArgs: [sessionId],
+    );
+  });
+}
+
+static Future<void> guardarVersionCatalogoMaterias(int version) async {
+  final db = await DatabaseService.database;
+
+  await db.insert(
+    'app_state',
+    {
+      'key': 'materias_catalogo_version',
+      'value': version.toString(),
+    },
+    conflictAlgorithm: ConflictAlgorithm.replace,
+  );
+}
+
+static Future<List<Map<String, dynamic>>> obtenerAlumnosBasePorGrupo({
+  required String plantel,
+  required String semestre,
+  required String grupo,
+  required String turno,
+  required String modalidad,
+}) async {
+  final db = await DatabaseService.database;
+
+  return db.query(
+    'alumnos',
+    where: '''
+      plantel = ?
+      AND semestre = ?
+      AND grupo = ?
+      AND turno = ?
+      AND modalidad = ?
+    ''',
+    whereArgs: [
+      plantel,
+      semestre,
+      grupo,
+      turno,
+      modalidad,
+    ],
+    orderBy: 'nombre ASC',
+  );
+}
+
   // =========================
   // ESTADÍSTICAS
   // =========================

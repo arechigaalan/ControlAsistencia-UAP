@@ -49,12 +49,19 @@ class _ConfigurarMateriasPageState extends State<ConfigurarMateriasPage> {
     }).toList();
   }
 
+  List<Materia> get materiasSeleccionadas {
+  return catalogo
+      .where((m) => clavesSeleccionadas.contains(m.clave))
+      .toList();
+  }
+
   Future<void> guardar() async {
     if (clavesSeleccionadas.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Selecciona al menos una materia')),
       );
       return;
+
     }
 
     final seleccionadas = catalogo
@@ -103,6 +110,7 @@ class _ConfigurarMateriasPageState extends State<ConfigurarMateriasPage> {
         }
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           automaticallyImplyLeading: !widget.obligatorio,
           title: const Text('Mis materias'),
@@ -166,6 +174,50 @@ class _ConfigurarMateriasPageState extends State<ConfigurarMateriasPage> {
                 ),
               ),
             ),
+            if (materiasSeleccionadas.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF8E8),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color.fromARGB(255, 255, 228, 170)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 1),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxHeight: 90,
+                        ),
+                        child: SingleChildScrollView(
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: materiasSeleccionadas.map((materia) {
+                              return Chip(
+                                label: Text(
+                                  '${materia.nombre} · Plan ${materia.plan}',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                deleteIcon: const Icon(Icons.close, size: 16),
+                                onDeleted: () {
+                                  setState(() {
+                                    clavesSeleccionadas.remove(materia.clave);
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),

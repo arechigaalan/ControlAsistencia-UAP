@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -32,6 +33,7 @@ class _ScannerPageState extends State<ScannerPage> {
   SessionData? sesion;
   bool cargando = true;
   bool mostrandoGuardado = false;
+  bool modoHorizontalExperimental = false;
 
   int? parcial;
   Materia? materiaSeleccionada;
@@ -54,12 +56,236 @@ class _ScannerPageState extends State<ScannerPage> {
   Timer? overlayTimer;
   Timer? cooldown;
   bool puedeEscanear = true;
+  bool esperandoSiguienteEscaneo = false;
+
+  static const Duration tiempoCooldownEscaneo = Duration(milliseconds: 2500);
+
   Color bordeFeedbackColor = Colors.transparent;
 
   final MobileScannerController scannerController = MobileScannerController(
     detectionSpeed: DetectionSpeed.normal,
     facing: CameraFacing.back,
   );
+
+  @override
+  void initState() {
+    super.initState();
+    _configurarOrientacion();
+    initSesion();
+  }
+
+  Future<void> _configurarOrientacion() async {
+    final experimental = await LocalStorage.obtenerModoHorizontalExperimental();
+
+    if (experimental) {
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    } else {
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+      ]);
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      modoHorizontalExperimental = experimental;
+    });
+  }
+
+  Future<void> marcarAsistenciaATodos() async {
+  if (sesion == null || parcial == null) return;
+
+  if (plantelSesion.isEmpty ||
+      grupoSesion.isEmpty ||
+      registrosSesion.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Primero escanea al menos un alumno para identificar el grupo.',
+        ),
+      ),
+    );
+    return;
+  }
+
+  final referencia = registrosSesion.first;
+
+  final alumnos = await LocalStorage.obtenerAlumnosBasePorGrupo(
+    plantel: referencia.plantel,
+    semestre: referencia.semestre,
+    grupo: referencia.grupo,
+    turno: referencia.turno,
+    modalidad: referencia.modalidad,
+  );
+
+  if (!mounted) return;
+
+  if (alumnos.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('No hay alumnos conocidos para este grupo.'),
+      ),
+    );
+    return;
+  }
+
+  final registrados = registrosSesion.map((r) => r.curp).toSet();
+
+  final pendientes = alumnos.where((a) {
+    final curp = (a['curp'] ?? '').toString();
+    return curp.isNotEmpty && !registrados.contains(curp);
+  }).toList();
+
+  if (pendientes.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Todos los alumnos conocidos ya están registrados.'),
+      ),
+    );
+    return;
+  }
+
+  final confirmar = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+      ),
+      title: const Text(
+        'Marcar asistencia a todos',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF01152E),
+        ),
+      ),
+      content: Text(
+        'Se registrará asistencia para ${pendientes.length} alumnos '
+        'que aún no están en esta sesión.\n\n'
+        '¿Deseas continuar?',
+        style: const TextStyle(
+          color: Color(0xFF5B6573),
+          fontSize: 15,
+        ),
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          style: _secondaryDialogButtonStyle(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          style: _primaryDialogButtonStyle(),
+          child: const Text('Continuar'),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmar != true) return;
+
+  final ahora = DateTime.now();
+  final nuevos = <RegistroAsistencia>[];
+
+  for (final alumno in pendientes) {
+    final registro = RegistroAsistencia(
+      idRegistro:
+          '${DateTime.now().microsecondsSinceEpoch}_${alumno['curp']}',
+      sessionId: sesion!.sessionId,
+      plantel: (alumno['plantel'] ?? '').toString(),
+      nombre: (alumno['nombre'] ?? '').toString(),
+      matricula: (alumno['matricula'] ?? '').toString(),
+      semestre: (alumno['semestre'] ?? '').toString(),
+      grupo: (alumno['grupo'] ?? '').toString(),
+      turno: (alumno['turno'] ?? '').toString(),
+      modalidad: (alumno['modalidad'] ?? '').toString(),
+      curp: (alumno['curp'] ?? '').toString(),
+      materiaClave: sesion!.materiaClave,
+      materiaNombre: sesion!.materiaNombre,
+      tipoRegistro: 'asistencia',
+      fechaClase: UtilsFechas.fechaClase(widget.fechaClase),
+      fechaHoraEscaneo: UtilsFechas.fechaHora(ahora),
+      codigo: 'ASISTENCIA_MANUAL_TODOS',
+      parcial: parcial!,
+    );
+
+    await LocalStorage.guardarRegistro(registro);
+    nuevos.add(registro);
+  }
+
+  final actualizados = await LocalStorage.obtenerRegistrosPorSesion(
+    sesion!.sessionId,
+  );
+
+  if (!mounted) return;
+
+  setState(() {
+    registrosSesion = actualizados.reversed.toList();
+    capturados = registrosSesion.length;
+  });
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        'Se registraron ${nuevos.length} asistencias.',
+      ),
+    ),
+  );
+}
+
+  Future<void> _alternarModoHorizontalExperimental() async {
+    final nuevoValor = !modoHorizontalExperimental;
+
+    await LocalStorage.guardarModoHorizontalExperimental(nuevoValor);
+
+    if (nuevoValor) {
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    } else {
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+      ]);
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      modoHorizontalExperimental = nuevoValor;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          nuevoValor
+              ? 'Vista horizontal experimental activada'
+              : 'Vista horizontal desactivada',
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    overlayTimer?.cancel();
+    cooldown?.cancel();
+    scannerController.dispose();
+
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+
+    super.dispose();
+  }
 
   Widget _headerChip(String text) {
     return Container(
@@ -77,20 +303,6 @@ class _ScannerPageState extends State<ScannerPage> {
         ),
       ),
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    initSesion();
-  }
-
-  @override
-  void dispose() {
-    overlayTimer?.cancel();
-    cooldown?.cancel();
-    scannerController.dispose();
-    super.dispose();
   }
 
   ButtonStyle _secondaryDialogButtonStyle() {
@@ -113,6 +325,22 @@ class _ScannerPageState extends State<ScannerPage> {
     );
   }
 
+  Future<Materia?> _materiaDesdeSesion(SessionData sesionActual) async {
+    final materias = await LocalStorage.obtenerMateriasDocente();
+
+    for (final materia in materias) {
+      if (materia.clave == sesionActual.materiaClave) {
+        return materia;
+      }
+    }
+
+    return Materia(
+      clave: sesionActual.materiaClave,
+      nombre: sesionActual.materiaNombre,
+      semestre: '',
+      plan: '',
+    );
+  }
 
   Future<Materia?> seleccionarMateriaSesion() async {
     final materias = await LocalStorage.obtenerMateriasDocente();
@@ -137,146 +365,163 @@ class _ScannerPageState extends State<ScannerPage> {
       ),
       builder: (sheetContext) {
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE5E7EB),
-                      borderRadius: BorderRadius.circular(20),
+          child: FractionallySizedBox(
+            heightFactor: 0.85,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE5E7EB),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  '¿A qué materia pertenece esta sesión?',
-                  style: TextStyle(
-                    color: Color(0xFF01152E),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                  const SizedBox(height: 16),
+                  const Text(
+                    '¿A qué materia pertenece esta sesión?',
+                    style: TextStyle(
+                      color: Color(0xFF01152E),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Selecciona una de tus materias configuradas.',
-                  style: TextStyle(color: Color(0xFF5B6573), fontSize: 14),
-                ),
-                const SizedBox(height: 14),
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: materias.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (_, index) {
-                      final materia = materias[index];
-                      return Card(
-                        child: ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: Color(0xFFFFF8E8),
-                            child: Icon(Icons.menu_book, color: Color(0xFF01152E)),
-                          ),
-                          title: Text(
-                            materia.nombre,
-                            style: const TextStyle(
-                              color: Color(0xFF01152E),
-                              fontWeight: FontWeight.bold,
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Selecciona una de tus materias configuradas.',
+                    style: TextStyle(color: Color(0xFF5B6573), fontSize: 14),
+                  ),
+                  const SizedBox(height: 14),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: materias.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      itemBuilder: (_, index) {
+                        final materia = materias[index];
+
+                        return Card(
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: Color(0xFFFFF8E8),
+                              child: Icon(
+                                Icons.menu_book,
+                                color: Color(0xFF01152E),
+                              ),
                             ),
+                            title: Text(
+                              materia.nombre,
+                              style: const TextStyle(
+                                color: Color(0xFF01152E),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${materia.semestre}° semestre · Plan ${materia.plan}',
+                              style: const TextStyle(color: Color(0xFF5B6573)),
+                            ),
+                            onTap: () => Navigator.of(sheetContext).pop(materia),
                           ),
-                          subtitle: Text(
-                            '${materia.semestre}° semestre · Plan ${materia.plan}',
-                            style: const TextStyle(color: Color(0xFF5B6573)),
-                          ),
-                          onTap: () => Navigator.of(sheetContext).pop(materia),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
       },
     );
   }
-
 
   Future<int?> seleccionarParcialSesion() async {
     if (!mounted) return null;
 
     return showModalBottomSheet<int>(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
       builder: (sheetContext) {
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE5E7EB),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  '¿A qué parcial pertenece esta sesión?',
-                  style: TextStyle(
-                    color: Color(0xFF01152E),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Selecciona el parcial que corresponde a esta clase.',
-                  style: TextStyle(color: Color(0xFF5B6573), fontSize: 14),
-                ),
-                const SizedBox(height: 14),
-                ...List.generate(5, (index) {
-                  final numero = index + 1;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Card(
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: const Color(0xFFFFF8E8),
-                          child: Text(
-                            '$numero',
-                            style: const TextStyle(
-                              color: Color(0xFF01152E),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          'Parcial $numero',
-                          style: const TextStyle(
-                            color: Color(0xFF01152E),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        onTap: () => Navigator.of(sheetContext).pop(numero),
+          child: FractionallySizedBox(
+            heightFactor: 0.85,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE5E7EB),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                     ),
-                  );
-                }),
-              ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '¿A qué parcial pertenece esta sesión?',
+                    style: TextStyle(
+                      color: Color(0xFF01152E),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Selecciona el parcial que corresponde a esta clase.',
+                    style: TextStyle(color: Color(0xFF5B6573), fontSize: 14),
+                  ),
+                  const SizedBox(height: 14),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: 5,
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      itemBuilder: (_, index) {
+                        final numero = index + 1;
+
+                        return Card(
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(0xFFFFF8E8),
+                              child: Text(
+                                '$numero',
+                                style: const TextStyle(
+                                  color: Color(0xFF01152E),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              'Parcial $numero',
+                              style: const TextStyle(
+                                color: Color(0xFF01152E),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            trailing: parcial == numero
+                                ? const Icon(
+                                    Icons.check_circle,
+                                    color: Color(0xFFE3C076),
+                                  )
+                                : null,
+                            onTap: () => Navigator.of(sheetContext).pop(numero),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -284,52 +529,49 @@ class _ScannerPageState extends State<ScannerPage> {
     );
   }
 
-  Future<void> initSesion() async {
-    try {
-      final fechaActual = UtilsFechas.fechaClase(widget.fechaClase);
+Future<void> _crearNuevaSesion() async {
+  final nueva = crearSesion(
+    tipoRegistro: widget.tipoRegistro,
+    fechaClase: widget.fechaClase,
+    parcial: parcial ?? 1,
+    materia: materiaSeleccionada!,
+  );
 
-      final materia = await seleccionarMateriaSesion();
-      if (materia == null) {
-        if (!mounted) return;
-        Navigator.of(context).pop();
-        return;
-      }
-      materiaSeleccionada = materia;
-      materiaSesion = materia.nombre;
+  await LocalStorage.guardarSesion(nueva);
+  await LocalStorage.guardarUltimoCodigo('');
 
-      final parcialElegido = await seleccionarParcialSesion();
-      if (parcialElegido == null) {
-        if (!mounted) return;
-        Navigator.of(context).pop();
-        return;
-      }
-      parcial = parcialElegido;
+  if (!mounted) return;
 
-      final sesionGuardada = await LocalStorage.obtenerSesion();
+  setState(() {
+    sesion = nueva;
+    ultimoCodigo = '';
+    capturados = 0;
+    registrosSesion = [];
+    grupoSesion = '';
+    turnoSesion = '';
+    modalidadSesion = '';
+    plantelSesion = '';
+    horaSesion = _obtenerHoraSesion(nueva.fechaCreacion);
+    materiaSesion = nueva.materiaNombre;
+    cargando = false;
+  });
+}
 
-      if (sesionGuardada == null) {
-        await _crearNuevaSesion();
-        return;
-      }
+Future<void> initSesion() async {
+  try {
+    final sesionGuardada = await LocalStorage.obtenerSesion();
 
-      final mismaSesion =
-          sesionGuardada.tipoRegistro == widget.tipoRegistro &&
-          sesionGuardada.fechaClase == fechaActual &&
-          sesionGuardada.parcial == parcial &&
-          sesionGuardada.materiaClave == materiaSeleccionada!.clave;
-
-      if (!mismaSesion) {
-        await _crearNuevaSesion();
-        return;
-      }
-
+    if (sesionGuardada != null) {
       final lista = await LocalStorage.obtenerRegistrosPorSesion(
         sesionGuardada.sessionId,
       );
 
-      final ultimo = await LocalStorage.obtenerUltimoCodigo();
-
-      if (lista.isNotEmpty) {
+      // Si la sesión existe pero no tiene registros, se elimina y no se pregunta.
+      if (lista.isEmpty) {
+        await LocalStorage.eliminarSesionPorId(sesionGuardada.sessionId);
+        await LocalStorage.guardarUltimoCodigo('');
+      } else {
+        final ultimo = await LocalStorage.obtenerUltimoCodigo();
         final primero = lista.first;
 
         grupoSesion = TurnoHelper.grupoCompleto(
@@ -338,88 +580,283 @@ class _ScannerPageState extends State<ScannerPage> {
         );
 
         turnoSesion = TurnoHelper.nombreTurno(primero.turno);
+        modalidadSesion = TurnoHelper.nombreModalidad(primero.modalidad);
+        plantelSesion = primero.plantel;
+
+        if (!mounted) return;
+
+        final decision = await dialogoSesion(
+          lista.length,
+          sesionGuardada.materiaNombre,
+          sesionGuardada.parcial,
+        );
+
+        if (!mounted) return;
+
+        if (decision == 'continuar') {
+          final listaInvertida = lista.reversed.toList();
+          final materia = await _materiaDesdeSesion(sesionGuardada);
+
+          if (!mounted) return;
+
+          setState(() {
+            sesion = sesionGuardada;
+            parcial = sesionGuardada.parcial;
+            materiaSeleccionada = materia;
+            ultimoCodigo = ultimo;
+            capturados = lista.length;
+            registrosSesion = listaInvertida;
+
+            grupoSesion = TurnoHelper.grupoCompleto(
+              semestre: primero.semestre,
+              grupo: primero.grupo,
+            );
+
+            turnoSesion = TurnoHelper.nombreTurno(primero.turno);
+            modalidadSesion = TurnoHelper.nombreModalidad(primero.modalidad);
+            plantelSesion = primero.plantel;
+            horaSesion = _obtenerHoraSesion(sesionGuardada.fechaCreacion);
+            materiaSesion = sesionGuardada.materiaNombre;
+            cargando = false;
+          });
+
+          return;
+        }
       }
-
-      if (!mounted) return;
-
-      final decision = await dialogoSesion(
-        lista.length,
-        sesionGuardada.materiaNombre,
-      );
-
-      if (!mounted) return;
-
-      if (decision == 'continuar') {
-        final listaInvertida = lista.reversed.toList();
-        final primero = lista.isNotEmpty ? lista.first : null;
-
-        setState(() {
-          sesion = sesionGuardada;
-          ultimoCodigo = ultimo;
-          capturados = lista.length;
-          registrosSesion = listaInvertida;
-
-          grupoSesion = primero == null
-              ? ''
-              : TurnoHelper.grupoCompleto(
-                  semestre: primero.semestre,
-                  grupo: primero.grupo,
-                );
-
-          turnoSesion = primero == null
-              ? ''
-              : TurnoHelper.nombreTurno(primero.turno);
-
-          modalidadSesion = primero == null
-              ? ''
-              : TurnoHelper.nombreModalidad(primero.modalidad);
-
-          plantelSesion = primero == null ? '' : primero.plantel;
-          horaSesion = _obtenerHoraSesion(sesionGuardada.fechaCreacion);
-          materiaSesion = sesionGuardada.materiaNombre;
-          cargando = false;
-        });
-      } else {
-        await _crearNuevaSesion();
-      }
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No fue posible iniciar la sesión')),
-      );
-      Navigator.of(context).pop();
     }
-  }
 
-  Future<void> _crearNuevaSesion() async {
-    final nueva = crearSesion(
-      tipoRegistro: widget.tipoRegistro,
-      fechaClase: widget.fechaClase,
-      parcial: parcial ?? 1,
-      materia: materiaSeleccionada!,
+    final materiasDocente = await LocalStorage.obtenerMateriasDocente();
+
+    if (materiasDocente.isEmpty) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Primero configura las materias que impartes'),
+        ),
+      );
+
+      Navigator.of(context).pop();
+      return;
+    }
+
+    if (materiasDocente.length == 1) {
+      final materia = materiasDocente.first;
+
+      materiaSeleccionada = materia;
+      materiaSesion = materia.nombre;
+    } else {
+      final materia = await seleccionarMateriaSesion();
+
+      if (materia == null) {
+        if (!mounted) return;
+        Navigator.of(context).pop();
+        return;
+      }
+
+      materiaSeleccionada = materia;
+      materiaSesion = materia.nombre;
+    }
+
+    final parcialElegido = await seleccionarParcialSesion();
+
+    if (parcialElegido == null) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      return;
+    }
+
+    parcial = parcialElegido;
+
+    await _crearNuevaSesion();
+  } catch (_) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('No fue posible iniciar la sesión')),
     );
 
-    await LocalStorage.guardarSesion(nueva);
-    await LocalStorage.guardarUltimoCodigo('');
+    Navigator.of(context).pop();
+  }
+}
+
+Future<void> cambiarMateriaSesion() async {
+  if (sesion == null) return;
+
+  final nuevaMateria = await seleccionarMateriaSesion();
+
+  if (nuevaMateria == null) return;
+
+  if (nuevaMateria.clave == sesion!.materiaClave) return;
+
+  if (!mounted) return;
+
+  if (registrosSesion.isNotEmpty) {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+        ),
+        title: const Text(
+          'Cambiar materia',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF01152E),
+          ),
+        ),
+        content: const Text(
+          'Esta sesión ya tiene registros. Si cambias la materia, todos los '
+          'registros de esta sesión se actualizarán a la nueva materia.',
+          style: TextStyle(color: Color(0xFF5B6573), fontSize: 15),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            style: _secondaryDialogButtonStyle(),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: _primaryDialogButtonStyle(),
+            child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+  }
+
+  final sesionActual = sesion!;
+
+  final sesionActualizada = SessionData(
+    sessionId: sesionActual.sessionId,
+    fechaCreacion: sesionActual.fechaCreacion,
+    activa: sesionActual.activa,
+    tipoRegistro: sesionActual.tipoRegistro,
+    fechaClase: sesionActual.fechaClase,
+    parcial: sesionActual.parcial,
+    materiaClave: nuevaMateria.clave,
+    materiaNombre: nuevaMateria.nombre,
+  );
+
+  await LocalStorage.actualizarMateriaSesionYRegistros(
+    sessionId: sesionActual.sessionId,
+    materiaClave: nuevaMateria.clave,
+    materiaNombre: nuevaMateria.nombre,
+  );
+
+  final registrosActualizados = await LocalStorage.obtenerRegistrosPorSesion(
+    sesionActual.sessionId,
+  );
+
+  if (!mounted) return;
+
+  setState(() {
+    sesion = sesionActualizada;
+    materiaSeleccionada = nuevaMateria;
+    materiaSesion = nuevaMateria.nombre;
+    registrosSesion = registrosActualizados.reversed.toList();
+    capturados = registrosSesion.length;
+  });
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Materia cambiada a ${nuevaMateria.nombre}')),
+  );
+}
+
+  Future<void> cambiarParcialSesion() async {
+    if (sesion == null) return;
+
+    materiaSeleccionada ??= await _materiaDesdeSesion(sesion!);
+
+    if (!mounted) return;
+
+    if (registrosSesion.isNotEmpty) {
+      final confirmar = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          title: const Text(
+            'Cambiar parcial',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF01152E),
+            ),
+          ),
+          content: const Text(
+            'Esta sesión ya tiene registros. Si cambias el parcial, todos los '
+            'registros de esta sesión se actualizarán al nuevo parcial.',
+            style: TextStyle(color: Color(0xFF5B6573), fontSize: 15),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              style: _secondaryDialogButtonStyle(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: _primaryDialogButtonStyle(),
+              child: const Text('Continuar'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmar != true) return;
+    }
+
+    final nuevoParcial = await seleccionarParcialSesion();
+
+    if (nuevoParcial == null || nuevoParcial == parcial) return;
+
+    final sesionActual = sesion!;
+
+    final sesionActualizada = SessionData(
+      sessionId: sesionActual.sessionId,
+      fechaCreacion: sesionActual.fechaCreacion,
+      activa: sesionActual.activa,
+      tipoRegistro: sesionActual.tipoRegistro,
+      fechaClase: sesionActual.fechaClase,
+      parcial: nuevoParcial,
+      materiaClave: sesionActual.materiaClave,
+      materiaNombre: sesionActual.materiaNombre,
+    );
+
+    await LocalStorage.actualizarParcialSesionYRegistros(
+      sessionId: sesionActual.sessionId,
+      parcial: nuevoParcial,
+    );
+
+    final registrosActualizados = await LocalStorage.obtenerRegistrosPorSesion(
+      sesionActual.sessionId,
+    );
 
     if (!mounted) return;
 
     setState(() {
-      sesion = nueva;
-      ultimoCodigo = '';
-      capturados = 0;
-      registrosSesion = [];
-      grupoSesion = '';
-      turnoSesion = '';
-      modalidadSesion = '';
-      plantelSesion = '';
-      horaSesion = _obtenerHoraSesion(nueva.fechaCreacion);
-      materiaSesion = nueva.materiaNombre;
-      cargando = false;
+      parcial = nuevoParcial;
+      sesion = sesionActualizada;
+      registrosSesion = registrosActualizados.reversed.toList();
+      capturados = registrosSesion.length;
     });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Parcial cambiado a $nuevoParcial')),
+    );
   }
 
-  Future<String?> dialogoSesion(int count, String materiaNombre) {
+  Future<String?> dialogoSesion(
+    int count,
+    String materiaNombre,
+    int parcialSesion,
+  ) {
     return showDialog<String>(
       context: context,
       barrierDismissible: false,
@@ -436,11 +873,14 @@ class _ScannerPageState extends State<ScannerPage> {
           grupoSesion.isNotEmpty
               ? 'Existe una sesión activa de:\n'
                     '$grupoSesion | $turnoSesion\n'
-                    'Materia: $materiaNombre\n\n'
+                    'Materia: $materiaNombre\n'
+                    'Parcial: $parcialSesion\n\n'
                     'Alumnos registrados: $count\n\n'
                     '¿Deseas continuar o crear una nueva?'
               : 'Existe una sesión activa.\n'
-                    'Alumnos registrados: $count\n'
+                    'Materia: $materiaNombre\n'
+                    'Parcial: $parcialSesion\n'
+                    'Alumnos registrados: $count\n\n'
                     '¿Deseas continuar o crear una nueva?',
           style: const TextStyle(color: Color(0xFF5B6573), fontSize: 15),
         ),
@@ -497,20 +937,35 @@ class _ScannerPageState extends State<ScannerPage> {
   }
 
   Future<void> intentarSalir() async {
-    final salir = await confirmarSalida();
+  // Si no hay registros, salir directamente sin preguntar.
+  if (registrosSesion.isEmpty) {
+    if (sesion != null) {
+      await LocalStorage.eliminarSesionPorId(sesion!.sessionId);
+      await LocalStorage.guardarUltimoCodigo('');
+    }
+
     if (!mounted) return;
 
-    if (salir) {
-      setState(() {
-        mostrandoGuardado = true;
-      });
-
-      await Future.delayed(const Duration(milliseconds: 900));
-
-      if (!mounted) return;
-      Navigator.of(context).pop();
-    }
+    Navigator.of(context).pop();
+    return;
   }
+
+  final salir = await confirmarSalida();
+
+  if (!mounted) return;
+
+  if (salir) {
+    setState(() {
+      mostrandoGuardado = true;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 900));
+
+    if (!mounted) return;
+
+    Navigator.of(context).pop();
+  }
+}
 
   SessionData crearSesion({
     required String tipoRegistro,
@@ -674,8 +1129,19 @@ class _ScannerPageState extends State<ScannerPage> {
     puedeEscanear = false;
     cooldown?.cancel();
 
-    cooldown = Timer(const Duration(milliseconds: 800), () {
-      puedeEscanear = true;
+    if (mounted) {
+      setState(() {
+        esperandoSiguienteEscaneo = true;
+      });
+    }
+
+    cooldown = Timer(tiempoCooldownEscaneo, () {
+      if (!mounted) return;
+
+      setState(() {
+        puedeEscanear = true;
+        esperandoSiguienteEscaneo = false;
+      });
     });
 
     if (codigo == ultimoCodigo) {
@@ -798,12 +1264,15 @@ class _ScannerPageState extends State<ScannerPage> {
       grupoSesion = grupoSesion.isEmpty
           ? TurnoHelper.grupoCompleto(semestre: semestre, grupo: grupo)
           : grupoSesion;
+
       turnoSesion = turnoSesion.isEmpty
           ? TurnoHelper.nombreTurno(turno)
           : turnoSesion;
+
       modalidadSesion = modalidadSesion.isEmpty
           ? TurnoHelper.nombreModalidad(modalidad)
           : modalidadSesion;
+
       plantelSesion = plantelSesion.isEmpty ? plantel : plantelSesion;
     });
 
@@ -814,11 +1283,340 @@ class _ScannerPageState extends State<ScannerPage> {
     await Future.wait([SonidoService.sonidoExito(), SonidoService.vibrar()]);
   }
 
+  Widget _bannerSesion() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF01152E), Color(0xFF17325C)],
+          ),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    plantelSesion.isEmpty ? '—' : plantelSesion,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFFE3C076),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: cambiarParcialSesion,
+                  child: _headerChip('Parcial ${parcial ?? '-'}'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 7),
+            Text(
+              '${grupoSesion.isEmpty ? '—' : grupoSesion} | '
+              '${turnoSesion.isEmpty ? '—' : turnoSesion} | '
+              '${modalidadSesion.isEmpty ? '—' : modalidadSesion}',
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+            ),
+            const SizedBox(height: 7),
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () async {
+                final materias = await LocalStorage.obtenerMateriasDocente();
+
+                if (materias.length <= 1) return;
+
+                await cambiarMateriaSesion();
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Text(
+                  materiaSesion.isEmpty ? 'Materia: —' : 'Materia: $materiaSesion',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFE3C076),
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${UtilsFechas.fechaHumana(widget.fechaClase)} - '
+                    '${horaSesion.isEmpty ? '—' : horaSesion}',
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '$capturados alumnos',
+                  style: const TextStyle(
+                    color: Color(0xFFE3C076),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _scannerPanel(String scannerOrientationKey) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: bordeFeedbackColor, width: 6),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              MobileScanner(
+                key: ValueKey('scanner_$scannerOrientationKey'),
+                controller: scannerController,
+                onDetect: (capture) async {
+                  if (!puedeEscanear) return;
+                  if (capture.barcodes.isEmpty) return;
+
+                  final code = capture.barcodes.first.rawValue?.trim();
+
+                  if (code != null && code.isNotEmpty) {
+                    await procesar(code);
+                  }
+                },
+              ),
+              Positioned(
+                top: 12,
+                right: 12,
+                child: FloatingActionButton.small(
+                  heroTag: 'switchCamera_$scannerOrientationKey',
+                  backgroundColor: const Color(0xFF01152E),
+                  foregroundColor: const Color(0xFFE3C076),
+                  onPressed: () async {
+                    await scannerController.switchCamera();
+                  },
+                  child: const Icon(Icons.cameraswitch),
+                ),
+              ),
+              OverlayEstado(
+                estado: estado,
+                mensaje: mensaje,
+                detalle: detalleOverlay,
+              ),
+              if (esperandoSiguienteEscaneo)
+                Positioned(
+                  bottom: 24,
+                  left: 20,
+                  right: 20,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.qr_code_scanner,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            'Espere para el siguiente escaneo...',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _listaPanel({
+    EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(16, 10, 16, 10),
+  }) {
+    return Padding(
+      padding: padding,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ListaRegistrosSesion(
+          registrosSesion: registrosSesion,
+          onEliminar: eliminarRegistroSesion,
+        ),
+      ),
+    );
+  }
+
+  Widget _contenidoNormal(String scannerOrientationKey) {
+    return Column(
+      children: [
+        _bannerSesion(),
+        Expanded(
+          flex: 2,
+          child: _scannerPanel(scannerOrientationKey),
+        ),
+        Expanded(
+          flex: 3,
+          child: _listaPanel(),
+        ),
+      ],
+    );
+  }
+
+  Widget _contenidoTabletHorizontal(String scannerOrientationKey) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 1,
+          child: Column(
+            children: [
+              _bannerSesion(),
+              Expanded(
+                child: _scannerPanel(scannerOrientationKey),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+        Expanded(
+          flex: 1,
+          child: _listaPanel(
+            padding: const EdgeInsets.fromLTRB(0, 14, 16, 10),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _overlayGuardado() {
+    if (!mostrandoGuardado) return const SizedBox.shrink();
+
+    return Container(
+      color: Colors.black.withValues(alpha: 0.35),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF01152E),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.check_circle,
+                size: 72,
+                color: Color(0xFFE3C076),
+              ),
+              SizedBox(height: 14),
+              Text(
+                'Sesión guardada',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (cargando) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+
+    final media = MediaQuery.of(context);
+    final size = media.size;
+
+    final esTablet = size.shortestSide >= 600;
+    final esHorizontal = size.width > size.height;
+    final scannerOrientationKey = esHorizontal ? 'landscape' : 'portrait';
+
+    final usarLayoutTabletHorizontal =
+        modoHorizontalExperimental && esTablet && esHorizontal;
 
     return PopScope(
       canPop: false,
@@ -852,217 +1650,36 @@ class _ScannerPageState extends State<ScannerPage> {
               ),
             ),
           ),
+          actions: [
+            if (registrosSesion.isNotEmpty)
+              IconButton(
+                tooltip: 'Marcar asistencia a todos',
+                icon: const Icon(
+                  Icons.group_add,
+                  color: Color(0xFFE3C076),
+                ),
+                onPressed: marcarAsistenciaATodos,
+              ),
+            IconButton(
+              tooltip: modoHorizontalExperimental
+                  ? 'Desactivar vista horizontal experimental'
+                  : 'Activar vista horizontal experimental',
+              icon: Icon(
+                modoHorizontalExperimental
+                    ? Icons.screen_rotation
+                    : Icons.stay_current_portrait,
+                color: const Color(0xFFE3C076),
+              ),
+              onPressed: _alternarModoHorizontalExperimental,
+            ),
+          ],
         ),
         body: Stack(
           children: [
-            Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF01152E), Color(0xFF17325C)],
-                      ),
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.12),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                plantelSesion.isEmpty ? '—' : plantelSesion,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Color(0xFFE3C076),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            _headerChip('Parcial ${parcial ?? '-'}'),
-                          ],
-                        ),
-                        const SizedBox(height: 7),
-                        Text(
-                          '${grupoSesion.isEmpty ? '—' : grupoSesion} | '
-                          '${turnoSesion.isEmpty ? '—' : turnoSesion} | '
-                          '${modalidadSesion.isEmpty ? '—' : modalidadSesion}',
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-                        const SizedBox(height: 7),
-                        Text(
-                          materiaSesion.isEmpty ? 'Materia: —' : 'Materia: $materiaSesion',
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFFE3C076),
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '${UtilsFechas.fechaHumana(widget.fechaClase)} - '
-                                '${horaSesion.isEmpty ? '—' : horaSesion}',
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '$capturados alumnos',
-                              style: const TextStyle(
-                                color: Color(0xFFE3C076),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: bordeFeedbackColor, width: 6),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            MobileScanner(
-                              controller: scannerController,
-                              onDetect: (capture) async {
-                                if (!puedeEscanear) return;
-                                if (capture.barcodes.isEmpty) return;
-
-                                final code = capture.barcodes.first.rawValue
-                                    ?.trim();
-
-                                if (code != null && code.isNotEmpty) {
-                                  await procesar(code);
-                                }
-                              },
-                            ),
-                            OverlayEstado(
-                              estado: estado,
-                              mensaje: mensaje,
-                              detalle: detalleOverlay,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 3,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ListaRegistrosSesion(
-                        registrosSesion: registrosSesion,
-                        onEliminar: eliminarRegistroSesion,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (mostrandoGuardado)
-              Container(
-                color: Colors.black.withValues(alpha: 0.35),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 28,
-                      vertical: 24,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF01152E),
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.25),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: const Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.check_circle,
-                          size: 72,
-                          color: Color(0xFFE3C076),
-                        ),
-                        SizedBox(height: 14),
-                        Text(
-                          'Sesión guardada',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            usarLayoutTabletHorizontal
+                ? _contenidoTabletHorizontal(scannerOrientationKey)
+                : _contenidoNormal(scannerOrientationKey),
+            _overlayGuardado(),
           ],
         ),
       ),

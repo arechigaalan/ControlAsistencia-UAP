@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseService {
   static Database? _database;
   static const _dbName = 'asistencia_qr.db';
-  static const _dbVersion = 5;
+  static const _dbVersion = 6;
 
   static Future<Database> get database async {
     if (_database != null) return _database!;
@@ -88,6 +88,15 @@ class DatabaseService {
         value TEXT
       )
     ''');
+
+  await db.execute('''
+    CREATE TABLE materias (
+      clave TEXT PRIMARY KEY,
+      nombre TEXT NOT NULL,
+      semestre TEXT NOT NULL,
+      plan TEXT NOT NULL
+    )
+  ''');
 
     await db.execute(
       'CREATE INDEX idx_registros_session_id ON registros(session_id)',
@@ -181,6 +190,17 @@ class DatabaseService {
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_registros_materia ON registros(materia_clave)',
       );
+    }
+
+    if (oldVersion < 6) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS materias (
+          clave TEXT PRIMARY KEY,
+          nombre TEXT NOT NULL,
+          semestre TEXT NOT NULL,
+          plan TEXT NOT NULL
+        )
+      ''');
     }
   }
 }
