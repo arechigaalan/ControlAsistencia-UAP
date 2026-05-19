@@ -21,6 +21,26 @@ class _EstadisticasGruposPageState extends State<EstadisticasGruposPage> {
     cargarGrupos();
   }
 
+    ButtonStyle _secondaryDialogButtonStyle() {
+    return FilledButton.styleFrom(
+      backgroundColor: const Color(0xFF01152E),
+      foregroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      minimumSize: const Size(110, 48),
+      textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+    );
+  }
+
+  ButtonStyle _primaryDialogButtonStyle() {
+    return FilledButton.styleFrom(
+      backgroundColor: const Color(0xFFE3C076),
+      foregroundColor: const Color(0xFF01152E),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      minimumSize: const Size(110, 48),
+      textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+    );
+  }
+
   Future<void> cargarGrupos() async {
     final rows = await LocalStorage.obtenerGruposDetectados();
 
@@ -47,6 +67,59 @@ class _EstadisticasGruposPageState extends State<EstadisticasGruposPage> {
     });
   }
 
+  Future<void> eliminarGrupo(_GrupoResumen g) async {
+  final confirmar = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+      ),
+      title: const Text('Eliminar grupo'),
+      content: Text(
+        'Se eliminarán todos los registros del grupo:\n\n'
+        '${g.plantel} - ${g.semestre}° ${g.grupo} - ${g.materiaNombre}\n\n'
+        'Esta acción no se puede deshacer.',
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+        actions: [
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          style: _secondaryDialogButtonStyle(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          style: _primaryDialogButtonStyle(),
+          child: const Text('Eliminar'),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmar != true) return;
+
+  await LocalStorage.eliminarGrupoMateria(
+    plantel: g.plantel,
+    semestre: g.semestre,
+    grupo: g.grupo,
+    turno: g.turno,
+    modalidad: g.modalidad,
+    materiaClave: g.materiaClave,
+  );
+
+  if (!mounted) return;
+
+  await cargarGrupos();
+
+  if (!mounted) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Grupo eliminado correctamente'),
+    ),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     if (cargando) {
@@ -71,6 +144,7 @@ class _EstadisticasGruposPageState extends State<EstadisticasGruposPage> {
           return Card(
             child: InkWell(
               borderRadius: BorderRadius.circular(18),
+              onLongPress: () => eliminarGrupo(g),
               onTap: () {
                 Navigator.push(
                   context,

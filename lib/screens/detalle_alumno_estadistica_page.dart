@@ -115,6 +115,7 @@ class _DetalleAlumnoEstadisticaPageState
     final justificadas = lista.where((d) => d.estado == 'Justificada').length;
     final faltas = lista.where((d) => d.estado == 'Falta').length;
     final total = lista.length;
+
     final porcentaje =
         total == 0 ? 0.0 : ((asistencias + justificadas) / total) * 100;
 
@@ -325,6 +326,102 @@ class _DetalleAlumnoEstadisticaPageState
   });
 }
 
+String _fechaConDia(String fecha) {
+  try {
+    final partes = fecha.split('/');
+
+    if (partes.length == 3) {
+      final dt = DateTime(
+        int.parse(partes[2]),
+        int.parse(partes[1]),
+        int.parse(partes[0]),
+      );
+
+      const dias = [
+        'Lun',
+        'Mar',
+        'Mié',
+        'Jue',
+        'Vie',
+        'Sáb',
+        'Dom',
+      ];
+
+      return '${dias[dt.weekday - 1]} $fecha';
+    }
+
+    final dt = DateTime.parse(fecha);
+
+    const dias = [
+      'Lun',
+      'Mar',
+      'Mié',
+      'Jue',
+      'Vie',
+      'Sáb',
+      'Dom',
+    ];
+
+    return '${dias[dt.weekday - 1]} ${_fechaVisible(fecha)}';
+  } catch (_) {
+    return fecha;
+  }
+}
+
+Future<void> _quitarAsistencia(_DetalleDia detalle) async {
+  if (guardandoJustificacion) return;
+
+  final confirmar = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      title: const Text('Marcar como falta'),
+      content: Text(
+        '¿Deseas eliminar la asistencia del ${_fechaVisible(detalle.fechaClase)} '
+        'para ${widget.nombre}? El alumno quedará con falta.',
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          style: _secondaryDialogButtonStyle(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          style: _primaryDialogButtonStyle(),
+          child: const Text('Aceptar'),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmar != true) return;
+
+  setState(() {
+    guardandoJustificacion = true;
+  });
+
+  await LocalStorage.eliminarAsistenciaManual(
+    sessionId: detalle.sessionId,
+    curp: widget.curp,
+  );
+
+  if (!mounted) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Asistencia eliminada correctamente')),
+  );
+
+  await cargar();
+
+  if (!mounted) return;
+
+  setState(() {
+    guardandoJustificacion = false;
+  });
+}
+
   Widget _resumenAlumno(String label, String value) {
     return Expanded(
       child: Container(
@@ -450,6 +547,7 @@ class _DetalleAlumnoEstadisticaPageState
                       final color = _colorEstado(d.estado);
                       final esFalta = d.estado == 'Falta';
                       final esJustificada = d.estado == 'Justificada';
+                      final esAsistencia = d.estado == 'Asistencia';
 
                       return Container(
                         padding: const EdgeInsets.all(14),
@@ -505,7 +603,7 @@ class _DetalleAlumnoEstadisticaPageState
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        _fechaVisible(d.fechaClase),
+                                        _fechaConDia(_fechaVisible(d.fechaClase)),
                                         style: const TextStyle(
                                           color: Color(0xFF01152E),
                                           fontWeight: FontWeight.bold,
@@ -524,26 +622,36 @@ class _DetalleAlumnoEstadisticaPageState
                                   ),
                                 ),
 
-                                if (esFalta || esJustificada) ...[
+                                if (esFalta || esJustificada || esAsistencia) ...[
                                   const SizedBox(width: 8),
                                   OutlinedButton.icon(
                                     onPressed: guardandoJustificacion
-                                        ? null
-                                        : () {
-                                            if (esFalta) {
-                                              _justificarFalta(d);
-                                            } else {
-                                              _quitarJustificacion(d);
-                                            }
-                                          },
-                                    icon: Icon(
-                                      esFalta ? Icons.assignment_turned_in : Icons.undo,
-                                      size: 14,
-                                    ),
-                                    label: Text(
-                                      esFalta ? 'Justificar' : 'Anular',
-                                      style: const TextStyle(fontSize: 14),
-                                    ),
+                                      ? null
+                                      : () {
+                                          if (esFalta) {
+                                            _justificarFalta(d);
+                                          } else if (esJustificada) {
+                                            _quitarJustificacion(d);
+                                          } else {
+                                            _quitarAsistencia(d);
+                                          }
+                                        },
+                                  icon: Icon(
+                                    esFalta
+                                        ? Icons.assignment_turned_in
+                                        : esJustificada
+                                            ? Icons.undo
+                                            : Icons.person_off,
+                                    size: 14,
+                                  ),
+                                  label: Text(
+                                    esFalta
+                                        ? 'Justificar'
+                                        : esJustificada
+                                            ? 'Anular'
+                                            : 'Falta',
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
                                     style: OutlinedButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                                       minimumSize: Size.zero,

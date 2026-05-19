@@ -226,18 +226,24 @@ class LocalStorage {
   }
 
   static Future<void> borrarTodosLosRegistros() async {
-    final db = await DatabaseService.database;
+  final db = await DatabaseService.database;
 
-    await db.delete('registros');
-    await db.delete('sesiones');
-    await db.delete('alumnos');
+  await db.delete('registros');
+  await db.delete('sesiones');
+  await db.delete('alumnos');
+  await db.delete('materias');
 
-    await db.delete(
-      'app_state',
-      where: 'key IN (?, ?)',
-      whereArgs: ['current_session_id', 'ultimo_codigo'],
-    );
-  }
+  await db.delete(
+    'app_state',
+    where: 'key IN (?, ?, ?, ?)',
+    whereArgs: [
+      'current_session_id',
+      'ultimo_codigo',
+      'materias_docente',
+      'materias_catalogo_version',
+    ],
+  );
+}
 
   static Future<void> guardarCatalogoMaterias(List<Materia> materias) async {
   final db = await DatabaseService.database;
@@ -291,29 +297,6 @@ static Future<void> reemplazarCatalogoMaterias(List<Materia> materias) async {
   }
 
   await batch.commit(noResult: true);
-}
-
-static Future<void> actualizarParcialSesionYRegistros({
-  required String sessionId,
-  required int parcial,
-}) async {
-  final db = await DatabaseService.database;
-
-  await db.transaction((txn) async {
-    await txn.update(
-      'sesiones',
-      {'parcial': parcial},
-      where: 'session_id = ?',
-      whereArgs: [sessionId],
-    );
-
-    await txn.update(
-      'registros',
-      {'parcial': parcial},
-      where: 'session_id = ?',
-      whereArgs: [sessionId],
-    );
-  });
 }
 
 static Future<void> guardarModoHorizontalExperimental(bool activo) async {
@@ -402,6 +385,152 @@ static Future<void> actualizarMateriaSesionYRegistros({
       where: 'session_id = ?',
       whereArgs: [sessionId],
     );
+  });
+}
+
+static Future<void> actualizarParcialSesionYRegistros({
+  required String sessionId,
+  required int parcial,
+}) async {
+  final db = await DatabaseService.database;
+
+  await db.transaction((txn) async {
+    await txn.update(
+      'sesiones',
+      {'parcial': parcial},
+      where: 'session_id = ?',
+      whereArgs: [sessionId],
+    );
+
+    await txn.update(
+      'registros',
+      {'parcial': parcial},
+      where: 'session_id = ?',
+      whereArgs: [sessionId],
+    );
+  });
+}
+
+static Future<void> eliminarAsistenciaManual({
+  required String sessionId,
+  required String curp,
+}) async {
+  final db = await DatabaseService.database;
+
+  await db.delete(
+    'registros',
+    where: '''
+      session_id = ?
+      AND curp = ?
+      AND tipo_registro = ?
+    ''',
+    whereArgs: [
+      sessionId,
+      curp,
+      'asistencia',
+    ],
+  );
+}
+
+static Future<void> eliminarGrupoMateria({
+  required String plantel,
+  required String semestre,
+  required String grupo,
+  required String turno,
+  required String modalidad,
+  required String materiaClave,
+}) async {
+  final db = await DatabaseService.database;
+
+  await db.transaction((txn) async {
+    await txn.delete(
+      'registros',
+      where: '''
+        plantel = ?
+        AND semestre = ?
+        AND grupo = ?
+        AND turno = ?
+        AND modalidad = ?
+        AND materia_clave = ?
+      ''',
+      whereArgs: [
+        plantel,
+        semestre,
+        grupo,
+        turno,
+        modalidad,
+        materiaClave,
+      ],
+    );
+
+    await txn.delete(
+      'alumnos',
+      where: '''
+        plantel = ?
+        AND semestre = ?
+        AND grupo = ?
+        AND turno = ?
+        AND modalidad = ?
+      ''',
+      whereArgs: [
+        plantel,
+        semestre,
+        grupo,
+        turno,
+        modalidad,
+      ],
+    );
+
+    await txn.delete(
+      'sesiones',
+      where: '''
+        session_id NOT IN (
+          SELECT DISTINCT session_id FROM registros
+        )
+      ''',
+    );
+  });
+}
+
+static Future<void> actualizarFechaSesionYRegistros({
+  required String sessionId,
+  required String fechaClase,
+}) async {
+  final db = await DatabaseService.database;
+
+  await db.transaction((txn) async {
+    await txn.update(
+      'sesiones',
+      {'fecha_clase': fechaClase},
+      where: 'session_id = ?',
+      whereArgs: [sessionId],
+    );
+
+    final registros = await txn.query(
+      'registros',
+      where: 'session_id = ?',
+      whereArgs: [sessionId],
+    );
+
+    for (final r in registros) {
+      final fechaHoraActual = (r['fecha_hora_escaneo'] ?? '').toString();
+
+      String nuevaFechaHora = fechaClase;
+
+      if (fechaHoraActual.length >= 16) {
+        nuevaFechaHora = '$fechaClase ${fechaHoraActual.substring(11)}';
+      }
+
+      await txn.update(
+        'registros',
+        {
+          'fecha_clase': fechaClase,
+          'fecha_hora_escaneo': nuevaFechaHora,
+        },
+        where: 'id_registro = ?',
+        whereArgs: [r['id_registro']],
+      );
+    }
   });
 }
 
@@ -504,6 +633,50 @@ static Future<List<Map<String, dynamic>>> obtenerAlumnosBasePorGrupo({
     );
   }
 
+static Future<void> eliminarSesionYRegistros(String sessionId) async {
+  final db = await DatabaseService.database;
+
+  await db.transaction((txn) async {
+    await txn.delete(
+      'registros',
+      where: 'session_id = ?',
+      whereArgs: [sessionId],
+    );
+
+    await txn.delete(
+      'sesiones',
+      where: 'session_id = ?',
+      whereArgs: [sessionId],
+    );
+
+    await txn.delete(
+      'app_state',
+      where: 'key = ? AND value = ?',
+      whereArgs: ['current_session_id', sessionId],
+    );
+  });
+}
+
+
+  static Future<List<Map<String, dynamic>>> obtenerGruposConocidos() async {
+    final db = await DatabaseService.database;
+
+    return db.rawQuery('''
+      SELECT DISTINCT
+        plantel,
+        semestre,
+        grupo,
+        turno,
+        modalidad
+      FROM alumnos
+      WHERE plantel != ''
+        AND semestre != ''
+        AND grupo != ''
+        AND turno != ''
+        AND modalidad != ''
+      ORDER BY plantel ASC, semestre ASC, grupo ASC, turno ASC, modalidad ASC
+    ''');
+    }
 
   static Future<List<int>> obtenerParcialesPorGrupoMateria({
     required String plantel,

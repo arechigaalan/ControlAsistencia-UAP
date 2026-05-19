@@ -25,6 +25,281 @@ class _VerAsistenciasPageState extends State<VerAsistenciasPage> {
     cargarSesiones();
   }
 
+  ButtonStyle _botonCancelarStyle() {
+  return FilledButton.styleFrom(
+    backgroundColor: const Color(0xFF01152E),
+    foregroundColor: Colors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(14),
+    ),
+    minimumSize: const Size(110, 48),
+    textStyle: const TextStyle(
+      fontWeight: FontWeight.w600,
+      fontSize: 15,
+    ),
+  );
+}
+
+ButtonStyle _botonEliminarStyle() {
+  return FilledButton.styleFrom(
+    backgroundColor: const Color(0xFFE3C076),
+    foregroundColor: const Color(0xFF01152E),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(14),
+    ),
+    minimumSize: const Size(110, 48),
+    textStyle: const TextStyle(
+      fontWeight: FontWeight.w700,
+      fontSize: 15,
+    ),
+  );
+}
+
+  Future<void> cambiarFechaSesion(
+  _SesionResumen s,
+) async {
+  final nuevaFecha = await showDatePicker(
+    context: context,
+    initialDate: DateTime.tryParse(
+          s.fechaClase.replaceAll('/', '-'),
+        ) ??
+        DateTime.now(),
+    firstDate: DateTime(2020),
+    lastDate: DateTime(2100),
+  );
+
+  if (nuevaFecha == null) return;
+
+  final fechaTexto = DateFormat(
+    'yyyy-MM-dd',
+  ).format(nuevaFecha);
+
+  await LocalStorage.actualizarFechaSesionYRegistros(
+    sessionId: s.sessionId,
+    fechaClase: fechaTexto,
+  );
+
+  await cargarSesiones();
+
+  if (!mounted) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Fecha actualizada'),
+    ),
+  );
+}
+
+  Future<void> mostrarOpcionesSesion(
+    _SesionResumen s,
+  ) async {
+    final accion = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(22),
+        ),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(
+                    Icons.calendar_month,
+                    color: Color(0xFF01152E),
+                  ),
+                  title: const Text('Cambiar fecha'),
+                  onTap: () {
+                    Navigator.pop(sheetContext, 'fecha');
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(
+                    Icons.layers,
+                    color: Color(0xFF01152E),
+                  ),
+                  title: const Text('Cambiar parcial'),
+                  onTap: () {
+                    Navigator.pop(sheetContext, 'parcial');
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(
+                    Icons.delete,
+                    color: Colors.red,
+                  ),
+                  title: const Text(
+                    'Eliminar sesión',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext, 'eliminar');
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (accion == null || !mounted) return;
+
+    switch (accion) {
+      case 'fecha':
+        await cambiarFechaSesion(s);
+        break;
+
+      case 'parcial':
+        await cambiarParcialSesion(s);
+        break;
+
+      case 'eliminar':
+        await eliminarSesion(s);
+        break;
+    }
+  }
+
+  Future<void> cambiarParcialSesion(
+    _SesionResumen s,
+  ) async {
+    final parcial = await showModalBottomSheet<int>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(22),
+        ),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(5, (index) {
+                final numero = index + 1;
+
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: const Color(0xFFFFF8E8),
+                    child: Text(
+                      '$numero',
+                      style: const TextStyle(
+                        color: Color(0xFF01152E),
+                      ),
+                    ),
+                  ),
+                  title: Text('Parcial $numero'),
+                  onTap: () {
+                    Navigator.pop(sheetContext, numero);
+                  },
+                );
+              }),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (parcial == null) return;
+
+    await LocalStorage.actualizarParcialSesionYRegistros(
+      sessionId: s.sessionId,
+      parcial: parcial,
+    );
+
+    await cargarSesiones();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Parcial actualizado'),
+      ),
+    );
+  }
+
+  Future<void> eliminarSesion(
+    _SesionResumen s,
+  ) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+        ),
+        title: const Text('Eliminar sesión'),
+        content: const Text(
+          'Esta acción eliminará la sesión y todos sus registros.',
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              style: _botonCancelarStyle(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: _botonEliminarStyle(),
+              child: const Text('Eliminar'),
+            ),
+          ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
+    await LocalStorage.eliminarSesionYRegistros(
+      s.sessionId,
+    );
+
+    await cargarSesiones();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Sesión eliminada'),
+      ),
+    );
+  }
+
+  String _fechaConDia(String fecha) {
+  try {
+    final partes = fecha.split('/');
+
+    if (partes.length != 3) return fecha;
+
+    final dt = DateTime(
+      int.parse(partes[2]),
+      int.parse(partes[1]),
+      int.parse(partes[0]),
+    );
+
+    const dias = [
+      'Lun',
+      'Mar',
+      'Mié',
+      'Jue',
+      'Vie',
+      'Sáb',
+      'Dom',
+    ];
+
+    final dia = dias[dt.weekday - 1];
+
+    return '$dia $fecha';
+  } catch (_) {
+    return fecha;
+  }
+}
+
+
   Future<void> cargarSesiones() async {
     final registros = await LocalStorage.obtenerTodosLosRegistros();
 
@@ -185,7 +460,7 @@ class _VerAsistenciasPageState extends State<VerAsistenciasPage> {
                               iconColor: const Color(0xFF01152E),
                               collapsedIconColor: const Color(0xFF01152E),
                               title: Text(
-                                '$fechaVisible (${sesiones.length} sesiones)',
+                                '${_fechaConDia(fechaVisible)} (${sesiones.length} sesiones)',
                                 style: const TextStyle(
                                   color: Color(0xFF01152E),
                                   fontWeight: FontWeight.bold,
@@ -199,6 +474,10 @@ class _VerAsistenciasPageState extends State<VerAsistenciasPage> {
                                   fecha: s.fechaVisible,
                                   hora: s.hora,
                                   cantidad: s.cantidad,
+                                  onLongPress: () async {
+                                    await mostrarOpcionesSesion(s);
+                                  },
+
                                   onTap: () async {
                                     await Navigator.push(
                                       context,
@@ -208,7 +487,7 @@ class _VerAsistenciasPageState extends State<VerAsistenciasPage> {
                                           fechaClase: s.fechaClase,
                                           parcial: s.parcial,
                                           tituloSesion:
-                                              '${s.plantel} | ${s.grupo} | ${s.turno} | ${s.modalidad} | ${s.materiaNombre} | Parcial ${s.parcial} | ${s.fechaVisible}',
+                                              '${s.plantel} | ${s.grupo} | ${s.modalidad} | ${s.materiaNombre} | ${s.fechaVisible}',
                                         ),
                                       ),
                                     );

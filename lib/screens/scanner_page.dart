@@ -99,27 +99,48 @@ class _ScannerPageState extends State<ScannerPage> {
   Future<void> marcarAsistenciaATodos() async {
   if (sesion == null || parcial == null) return;
 
-  if (plantelSesion.isEmpty ||
-      grupoSesion.isEmpty ||
-      registrosSesion.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Primero escanea al menos un alumno para identificar el grupo.',
-        ),
-      ),
-    );
-    return;
+  String plantelReferencia;
+  String semestreReferencia;
+  String grupoReferencia;
+  String turnoReferencia;
+  String modalidadReferencia;
+
+  if (registrosSesion.isNotEmpty) {
+    final referencia = registrosSesion.first;
+
+    plantelReferencia = referencia.plantel;
+    semestreReferencia = referencia.semestre;
+    grupoReferencia = referencia.grupo;
+    turnoReferencia = referencia.turno;
+    modalidadReferencia = referencia.modalidad;
+  } else {
+    final grupoSeleccionado = await seleccionarGrupoParaAsistenciaMasiva();
+
+    if (grupoSeleccionado == null) return;
+
+    plantelReferencia = (grupoSeleccionado['plantel'] ?? '').toString();
+    semestreReferencia = (grupoSeleccionado['semestre'] ?? '').toString();
+    grupoReferencia = (grupoSeleccionado['grupo'] ?? '').toString();
+    turnoReferencia = (grupoSeleccionado['turno'] ?? '').toString();
+    modalidadReferencia = (grupoSeleccionado['modalidad'] ?? '').toString();
+
+    setState(() {
+      plantelSesion = plantelReferencia;
+      grupoSesion = TurnoHelper.grupoCompleto(
+        semestre: semestreReferencia,
+        grupo: grupoReferencia,
+      );
+      turnoSesion = TurnoHelper.nombreTurno(turnoReferencia);
+      modalidadSesion = TurnoHelper.nombreModalidad(modalidadReferencia);
+    });
   }
 
-  final referencia = registrosSesion.first;
-
   final alumnos = await LocalStorage.obtenerAlumnosBasePorGrupo(
-    plantel: referencia.plantel,
-    semestre: referencia.semestre,
-    grupo: referencia.grupo,
-    turno: referencia.turno,
-    modalidad: referencia.modalidad,
+    plantel: plantelReferencia,
+    semestre: semestreReferencia,
+    grupo: grupoReferencia,
+    turno: turnoReferencia,
+    modalidad: modalidadReferencia,
   );
 
   if (!mounted) return;
@@ -1123,6 +1144,114 @@ Future<void> cambiarMateriaSesion() async {
     });
   }
 
+  Future<Map<String, dynamic>?> seleccionarGrupoParaAsistenciaMasiva() async {
+    final grupos = await LocalStorage.obtenerGruposConocidos();
+
+    if (!mounted) return null;
+
+    if (grupos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No hay grupos conocidos. Escanea al menos un alumno primero.',
+          ),
+        ),
+      );
+      return null;
+    }
+
+    return showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: FractionallySizedBox(
+            heightFactor: 0.85,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE5E7EB),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Selecciona el grupo',
+                    style: TextStyle(
+                      color: Color(0xFF01152E),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Elige el grupo al que se le registrará asistencia.',
+                    style: TextStyle(color: Color(0xFF5B6573), fontSize: 14),
+                  ),
+                  const SizedBox(height: 14),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: grupos.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      itemBuilder: (_, index) {
+                        final g = grupos[index];
+
+                        final plantel = (g['plantel'] ?? '').toString();
+                        final semestre = (g['semestre'] ?? '').toString();
+                        final grupo = (g['grupo'] ?? '').toString();
+                        final turno = (g['turno'] ?? '').toString();
+                        final modalidad = (g['modalidad'] ?? '').toString();
+
+                        return Card(
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: Color(0xFFFFF8E8),
+                              child: Icon(
+                                Icons.groups,
+                                color: Color(0xFF01152E),
+                              ),
+                            ),
+                            title: Text(
+                              TurnoHelper.grupoCompleto(
+                                semestre: semestre,
+                                grupo: grupo,
+                              ),
+                              style: const TextStyle(
+                                color: Color(0xFF01152E),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '$plantel · ${TurnoHelper.nombreTurno(turno)} · '
+                              '${TurnoHelper.nombreModalidad(modalidad)}',
+                              style: const TextStyle(color: Color(0xFF5B6573)),
+                            ),
+                            onTap: () => Navigator.of(sheetContext).pop(g),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> procesar(String codigo) async {
     if (!puedeEscanear || sesion == null || parcial == null) return;
 
@@ -1146,7 +1275,7 @@ Future<void> cambiarMateriaSesion() async {
 
     if (codigo == ultimoCodigo) {
       activarBordeFeedback(Colors.orange);
-      mostrarOverlay(EstadoEscaneo.duplicado, 'Ya fue escaneado');
+      mostrarOverlay(EstadoEscaneo.duplicado, 'Alumno ya registrado');
       await Future.wait([SonidoService.sonidoError(), SonidoService.vibrar()]);
       return;
     }
@@ -1651,15 +1780,14 @@ Future<void> cambiarMateriaSesion() async {
             ),
           ),
           actions: [
-            if (registrosSesion.isNotEmpty)
-              IconButton(
-                tooltip: 'Marcar asistencia a todos',
-                icon: const Icon(
-                  Icons.group_add,
-                  color: Color(0xFFE3C076),
-                ),
-                onPressed: marcarAsistenciaATodos,
+            IconButton(
+              tooltip: 'Marcar asistencia a todos',
+              icon: const Icon(
+                Icons.group_add,
+                color: Color(0xFFE3C076),
               ),
+              onPressed: marcarAsistenciaATodos,
+            ),
             IconButton(
               tooltip: modoHorizontalExperimental
                   ? 'Desactivar vista horizontal experimental'

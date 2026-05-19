@@ -162,6 +162,8 @@ class _HomePageState extends State<HomePage> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              scrollable: true,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(22),
               ),
@@ -172,64 +174,68 @@ class _HomePageState extends State<HomePage> {
                   color: Color(0xFF01152E),
                 ),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Se eliminarán TODOS los registros guardados.\n'
-                    'Esta acción no se puede deshacer.\n\n'
-                    'Escribe ELIMINAR para continuar.',
-                    style: TextStyle(color: Color(0xFF5B6573), fontSize: 15),
-                  ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    autofocus: true,
-                    onChanged: (value) {
-                      textoConfirmacion = value;
-                      final nuevoEstado =
-                          textoConfirmacion.trim().toUpperCase() == 'ELIMINAR';
-                      if (nuevoEstado != habilitarBoton) {
-                        setDialogState(() {
-                          habilitarBoton = nuevoEstado;
-                        });
-                      }
-                    },
-                    decoration: const InputDecoration(
-                      labelText: 'Confirmación',
-                      border: OutlineInputBorder(),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Se eliminarán TODOS los registros guardados.\n'
+                      'Esta acción no se puede deshacer.\n\n'
+                      'Escribe ELIMINAR para continuar.',
+                      style: TextStyle(color: Color(0xFF5B6573), fontSize: 15),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      autofocus: true,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => FocusScope.of(dialogContext).unfocus(),
+                      onChanged: (value) {
+                        textoConfirmacion = value;
 
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text(
-                    'Cancelar',
-                    style: TextStyle(
-                      color: Color(0xFF5B6573),
-                      fontWeight: FontWeight.w600,
+                        final nuevoEstado =
+                            textoConfirmacion.trim().toUpperCase() == 'ELIMINAR';
+
+                        if (nuevoEstado != habilitarBoton) {
+                          setDialogState(() {
+                            habilitarBoton = nuevoEstado;
+                          });
+                        }
+                      },
+                      decoration: const InputDecoration(
+                        labelText: 'Confirmación',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
+                    const SizedBox(height: 18),
+                  ],
+                ),
+              ),
+              actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+              actions: [
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF01152E),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    minimumSize: const Size(110, 48),
                   ),
+                  child: const Text('Cancelar'),
                 ),
                 FilledButton(
                   onPressed: habilitarBoton
                       ? () => Navigator.of(dialogContext).pop(true)
                       : null,
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFD93025),
-                    foregroundColor: Colors.white,
-                    minimumSize: Size.zero,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 10,
-                    ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    backgroundColor: const Color(0xFFE3C076),
+                    foregroundColor: const Color(0xFF01152E),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
+                    minimumSize: const Size(110, 48),
                   ),
                   child: const Text('Eliminar'),
                 ),
@@ -253,7 +259,7 @@ class _HomePageState extends State<HomePage> {
     final hayRegistros = totalRegistros > 0;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Control de asistencia'),
+        title: const Text('Control de Asistencia'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -284,7 +290,7 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 children: [
                   const Text(
-                    'Sesiones registradas',
+                    'Sesiones Registradas',
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 15,

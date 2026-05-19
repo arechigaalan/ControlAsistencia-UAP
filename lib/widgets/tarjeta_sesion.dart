@@ -7,6 +7,7 @@ class TarjetaSesion extends StatelessWidget {
   final String hora;
   final int cantidad;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const TarjetaSesion({
     super.key,
@@ -16,6 +17,7 @@ class TarjetaSesion extends StatelessWidget {
     required this.hora,
     required this.cantidad,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -25,6 +27,7 @@ class TarjetaSesion extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
