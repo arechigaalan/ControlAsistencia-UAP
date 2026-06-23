@@ -7,6 +7,7 @@ import '../models/registro_asistencia.dart';
 import '../models/session_data.dart';
 import 'database_service.dart';
 
+
 class LocalStorage {
   static Future<void> guardarSesion(SessionData sesion) async {
     final db = await DatabaseService.database;
@@ -780,4 +781,67 @@ static Future<void> eliminarSesionYRegistros(String sessionId) async {
 
     return resultado;
   }
+
+  static Future<List<RegistroAsistencia>>
+    obtenerRegistrosPendientesSincronizar() async {
+  final db = await DatabaseService.database;
+
+  final rows = await db.query(
+    'registros',
+    where: 'sincronizado = ?',
+    whereArgs: [0],
+    orderBy: 'fecha_hora_escaneo ASC',
+  );
+
+  return rows.map(RegistroAsistencia.fromMap).toList();
+}
+
+static Future<int> contarRegistrosPendientesSincronizar() async {
+  final db = await DatabaseService.database;
+
+  final result = await db.rawQuery('''
+    SELECT COUNT(*) AS total
+    FROM registros
+    WHERE sincronizado = 0
+  ''');
+
+  return (result.first['total'] as int?) ?? 0;
+}
+
+static Future<void> marcarRegistrosComoSincronizados({
+  required List<String> idsRegistros,
+}) async {
+  if (idsRegistros.isEmpty) return;
+
+  final db = await DatabaseService.database;
+  final fecha = DateTime.now().toIso8601String();
+
+  final batch = db.batch();
+
+  for (final id in idsRegistros) {
+    batch.update(
+      'registros',
+      {
+        'sincronizado': 1,
+        'fecha_sincronizacion': fecha,
+      },
+      where: 'id_registro = ?',
+      whereArgs: [id],
+    );
+  }
+
+  await batch.commit(noResult: true);
+}
+
+static Future<int> contarRegistrosSincronizados() async {
+  final db = await DatabaseService.database;
+
+  final result = await db.rawQuery('''
+    SELECT COUNT(*) AS total
+    FROM registros
+    WHERE sincronizado = 1
+  ''');
+
+  return (result.first['total'] as int?) ?? 0;
+}
 }

@@ -5,6 +5,9 @@ import 'configurar_materias_page.dart';
 import 'estadisticas_grupos_page.dart';
 import 'scanner_page.dart';
 import 'ver_asistencias_page.dart';
+import '../services/sync_service.dart';
+import '../services/auth_service.dart';
+import 'auth_gate.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -15,6 +18,9 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int totalSesiones = 0;
   int totalRegistros = 0;
+  int registrosSincronizados = 0;
+  int registrosPendientes = 0;
+  bool sincronizando = false;
   bool revisadoConfig = false;
   @override
   void initState() {
@@ -44,10 +50,14 @@ class _HomePageState extends State<HomePage> {
   Future<void> cargarResumen() async {
     final sesiones = await LocalStorage.contarSesiones();
     final registros = await LocalStorage.contarRegistros();
+    final pendientes = await LocalStorage.contarRegistrosPendientesSincronizar();
+    final sincronizados = await LocalStorage.contarRegistrosSincronizados();
     if (!mounted) return;
     setState(() {
       totalSesiones = sesiones;
       totalRegistros = registros;
+      registrosPendientes = pendientes;
+      registrosSincronizados = sincronizados;
     });
   }
 
@@ -93,6 +103,30 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> sincronizar() async {
+  if (sincronizando) return;
+
+  setState(() {
+    sincronizando = true;
+  });
+
+  final resultado = await SyncService.sincronizarPruebaLocal();
+
+  if (!mounted) return;
+
+  setState(() {
+    sincronizando = false;
+  });
+
+  await cargarResumen();
+
+  if (!mounted) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(resultado.mensaje)),
+  );
+}
+
   Future<void> abrirConfiguracion() async {
     final opcion = await showModalBottomSheet<String>(
       context: context,
@@ -128,6 +162,14 @@ class _HomePageState extends State<HomePage> {
                 title: const Text('Configurar materias'),
                 onTap: () => Navigator.of(sheetContext).pop('materias'),
               ),
+              ListTile(
+                leading: const Icon(
+                  Icons.logout,
+                  color: Color(0xFFD93025),
+                ),
+                title: const Text('Cerrar sesión'),
+                onTap: () => Navigator.of(sheetContext).pop('logout'),
+              ),
             ],
           ),
         ),
@@ -142,6 +184,72 @@ class _HomePageState extends State<HomePage> {
         MaterialPageRoute(builder: (_) => const ConfigurarMateriasPage()),
       );
     }
+
+    if (opcion == 'logout') {
+  final confirmar = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+      ),
+      title: const Text('Cerrar sesión'),
+      content: const Text(
+        '¿Deseas cerrar la sesión actual?',
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+      actionsOverflowDirection: VerticalDirection.down,
+      actionsOverflowButtonSpacing: 10,
+      actions: [
+        OverflowBar(
+          spacing: 10,
+          overflowSpacing: 10,
+          alignment: MainAxisAlignment.end,
+          children: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF01152E),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(110, 48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFE3C076),
+                foregroundColor: const Color(0xFF01152E),
+                minimumSize: const Size(110, 48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text('Aceptar'),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+
+  if (confirmar == true) {
+    await AuthService.cerrarSesion();
+
+    if (!mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const AuthGate(),
+      ),
+      (route) => false,
+    );
+
+    return;
+  }
+}
 
     await cargarResumen();
   }
@@ -337,6 +445,18 @@ class _HomePageState extends State<HomePage> {
               title: 'Exportar CSV',
               subtitle: 'Generar archivo CSV con todos los registros.',
               onTap: hayRegistros ? exportarCsv : null,
+            ),
+            const SizedBox(height: 12),
+            _HomeActionCard(
+              icon: Icons.sync,
+              title: sincronizando
+                  ? 'Sincronizando...'
+                  : 'Sincronizar',
+              subtitle:
+                  'Pendientes: $registrosPendientes · Sincronizados: $registrosSincronizados',
+              onTap: registrosPendientes > 0 && !sincronizando
+                  ? sincronizar
+                  : null,
             ),
             const SizedBox(height: 12),
             _HomeActionCard(

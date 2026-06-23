@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/registro_asistencia.dart';
 import '../services/local_storage.dart';
 import '../services/utils_fechas.dart';
+import '../services/auth_service.dart';
 
 class DetalleAlumnoEstadisticaPage extends StatefulWidget {
   final String curp;
@@ -234,6 +235,7 @@ class _DetalleAlumnoEstadisticaPageState
       return;
     }
 
+    final docenteId = await AuthService.obtenerDocenteIdInt();
     final ahora = DateTime.now();
     final referencia = detalle.referencia;
 
@@ -255,6 +257,7 @@ class _DetalleAlumnoEstadisticaPageState
       fechaHoraEscaneo: UtilsFechas.fechaHora(ahora),
       codigo: 'JUSTIFICACION_MANUAL',
       parcial: referencia.parcial,
+      docenteId: docenteId,
     );
 
     await LocalStorage.guardarRegistro(registro);

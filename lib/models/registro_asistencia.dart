@@ -17,6 +17,10 @@ class RegistroAsistencia {
   final String codigo;
   final int parcial;
 
+  final int docenteId;
+  final bool sincronizado;
+  final String fechaSincronizacion;
+
   RegistroAsistencia({
     required this.idRegistro,
     required this.sessionId,
@@ -35,6 +39,9 @@ class RegistroAsistencia {
     required this.fechaHoraEscaneo,
     required this.codigo,
     required this.parcial,
+    this.docenteId = 0,
+    this.sincronizado = false,
+    this.fechaSincronizacion = '',
   });
 
   Map<String, dynamic> toMap() => {
@@ -55,6 +62,9 @@ class RegistroAsistencia {
         'fecha_hora_escaneo': fechaHoraEscaneo,
         'codigo': codigo,
         'parcial': parcial,
+        'docente_id': docenteId,
+        'sincronizado': sincronizado ? 1 : 0,
+        'fecha_sincronizacion': fechaSincronizacion,
       };
 
   factory RegistroAsistencia.fromMap(Map<String, dynamic> map) {
@@ -78,6 +88,11 @@ class RegistroAsistencia {
       parcial: map['parcial'] is int
           ? map['parcial']
           : int.tryParse((map['parcial'] ?? '1').toString()) ?? 1,
+      docenteId: map['docente_id'] is int
+          ? map['docente_id'] as int
+          : int.tryParse((map['docente_id'] ?? '0').toString()) ?? 0,
+      sincronizado: (map['sincronizado'] ?? 0) == 1,
+      fechaSincronizacion: (map['fecha_sincronizacion'] ?? '').toString(),
     );
   }
 }

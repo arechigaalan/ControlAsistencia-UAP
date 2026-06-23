@@ -14,6 +14,7 @@ import '../services/turno_helper.dart';
 import '../services/utils_fechas.dart';
 import '../widgets/lista_registros_sesion.dart';
 import '../widgets/overlay_estado.dart';
+import '../services/auth_service.dart';
 
 class ScannerPage extends StatefulWidget {
   final String tipoRegistro;
@@ -99,6 +100,7 @@ class _ScannerPageState extends State<ScannerPage> {
   Future<void> marcarAsistenciaATodos() async {
   if (sesion == null || parcial == null) return;
 
+  final docenteId = await AuthService.obtenerDocenteIdInt();
   String plantelReferencia;
   String semestreReferencia;
   String grupoReferencia;
@@ -209,7 +211,7 @@ class _ScannerPageState extends State<ScannerPage> {
   );
 
   if (confirmar != true) return;
-
+  
   final ahora = DateTime.now();
   final nuevos = <RegistroAsistencia>[];
 
@@ -233,6 +235,7 @@ class _ScannerPageState extends State<ScannerPage> {
       fechaHoraEscaneo: UtilsFechas.fechaHora(ahora),
       codigo: 'ASISTENCIA_MANUAL_TODOS',
       parcial: parcial!,
+      docenteId: docenteId,
     );
 
     await LocalStorage.guardarRegistro(registro);
@@ -1297,6 +1300,8 @@ Future<void> cambiarMateriaSesion() async {
     final turno = partes[5];
     final modalidad = partes[6].toUpperCase();
     final curp = partes[7].toUpperCase();
+    final docenteId = await AuthService.obtenerDocenteIdInt();
+    final ahora = DateTime.now();
 
     if (plantel.isEmpty ||
         matricula.isEmpty ||
@@ -1358,8 +1363,6 @@ Future<void> cambiarMateriaSesion() async {
       return;
     }
 
-    final ahora = DateTime.now();
-
     final registro = RegistroAsistencia(
       idRegistro: generarIdRegistro(),
       sessionId: sesion!.sessionId,
@@ -1378,6 +1381,7 @@ Future<void> cambiarMateriaSesion() async {
       fechaHoraEscaneo: UtilsFechas.fechaHora(ahora),
       codigo: codigo,
       parcial: parcial!,
+      docenteId: docenteId,
     );
 
     await LocalStorage.guardarRegistro(registro);

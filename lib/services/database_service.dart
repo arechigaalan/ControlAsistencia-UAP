@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseService {
   static Database? _database;
   static const _dbName = 'asistencia_qr.db';
-  static const _dbVersion = 6;
+  static const _dbVersion = 8;
 
   static Future<Database> get database async {
     if (_database != null) return _database!;
@@ -57,9 +57,12 @@ class DatabaseService {
         fecha_hora_escaneo TEXT NOT NULL,
         codigo TEXT NOT NULL,
         parcial INTEGER NOT NULL,
+        docente_id INTEGER DEFAULT 0,
+        sincronizado INTEGER DEFAULT 0,
+        fecha_sincronizacion TEXT,
         FOREIGN KEY(session_id) REFERENCES sesiones(session_id)
       )
-    ''');
+  ''');
 
     await db.execute('''
       CREATE TABLE alumnos (
@@ -201,6 +204,22 @@ class DatabaseService {
           plan TEXT NOT NULL
         )
       ''');
+    }
+
+    if (oldVersion < 7) {
+      await db.execute(
+        "ALTER TABLE registros ADD COLUMN sincronizado INTEGER DEFAULT 0",
+      );
+
+      await db.execute(
+        "ALTER TABLE registros ADD COLUMN fecha_sincronizacion TEXT",
+      );
+    }
+
+    if (oldVersion < 8) {
+      await db.execute(
+        "ALTER TABLE registros ADD COLUMN docente_id INTEGER DEFAULT 0",
+      );
     }
   }
 }

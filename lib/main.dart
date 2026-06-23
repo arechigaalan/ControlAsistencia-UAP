@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'screens/home_page.dart';
 import 'theme/app_theme.dart';
+import 'screens/auth_gate.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
       title: 'Control Asistencia',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const HomePage(),
+      home: const AuthGate(),
     );
   }
 }
